@@ -1,0 +1,182 @@
+:root {
+	--ink: #0b0b0b;
+	--ink-2: #121212;
+	--ink-3: #1a1a1a;
+	--line: #2a2a2a;
+	--stone: #666666;
+	--mist: #9a9a9a;
+	--paper: #f2f2ee;
+	--lime: #abce26;
+	--lime-soft: #abce2622;
+	--danger: #ff6b5a;
+	--display: 'Michroma', 'Manrope', sans-serif;
+	--body: 'Manrope', system-ui, sans-serif;
+	--radius: 16px;
+	--wrap: 1200px;
+	color-scheme: dark;
+}
+
+* {
+	box-sizing: border-box;
+}
+html {
+	scroll-behavior: smooth;
+}
+body {
+	margin: 0;
+	background: var(--ink);
+	color: var(--paper);
+	font-family: var(--body);
+	font-size: 16px;
+	line-height: 1.55;
+	-webkit-font-smoothing: antialiased;
+	overflow-x: hidden;
+}
+a {
+	color: inherit;
+	text-decoration: none;
+}
+img {
+	max-width: 100%;
+	display: block;
+}
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+::selection {
+	background: var(--lime);
+	color: var(--ink);
+}
+
+.wrap {
+	width: min(var(--wrap), 100% - 32px);
+	margin-inline: auto;
+}
+
+.display {
+	font-family: var(--display);
+	font-weight: 400;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	line-height: 1.15;
+}
+
+.eyebrow {
+	font-family: var(--display);
+	font-size: 11px;
+	letter-spacing: 0.32em;
+	text-transform: uppercase;
+	color: var(--lime);
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+}
+/* motivo de puntos de las alas del logo */
+.eyebrow::before {
+	content: '';
+	width: 22px;
+	height: 8px;
+	background:
+		radial-gradient(circle at 4px 4px, var(--lime) 3.5px, transparent 4px),
+		radial-gradient(circle at 13px 4px, var(--lime) 2.5px, transparent 3px),
+		radial-gradient(circle at 20px 4px, var(--lime) 1.5px, transparent 2px);
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 14px 26px;
+	border-radius: 999px;
+	border: 1px solid transparent;
+	font-weight: 700;
+	font-size: 15px;
+	cursor: pointer;
+	transition:
+		transform 0.15s,
+		background 0.2s,
+		border-color 0.2s,
+		color 0.2s;
+	white-space: nowrap;
+}
+.btn:active {
+	transform: scale(0.98);
+}
+.btn-lime {
+	background: var(--lime);
+	color: var(--ink);
+}
+.btn-lime:hover {
+	background: #c0e23a;
+}
+.btn-ghost {
+	border-color: var(--line);
+	background: transparent;
+}
+.btn-ghost:hover {
+	border-color: var(--lime);
+	color: var(--lime);
+}
+.btn[disabled],
+.btn[aria-disabled='true'] {
+	opacity: 0.35;
+	pointer-events: none;
+}
+
+.card {
+	background: var(--ink-2);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+}
+
+.field {
+	display: grid;
+	gap: 6px;
+}
+.field label {
+	font-size: 13px;
+	color: var(--mist);
+	font-weight: 600;
+}
+.input {
+	width: 100%;
+	background: var(--ink);
+	border: 1px solid var(--line);
+	border-radius: 12px;
+	padding: 13px 14px;
+	outline: none;
+	transition: border-color 0.2s;
+}
+.input:focus {
+	border-color: var(--lime);
+}
+
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 11px;
+	border-radius: 999px;
+	border: 1px solid var(--line);
+	font-size: 12px;
+	color: var(--mist);
+	font-weight: 600;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+}
+
+:focus-visible {
+	outline: 2px solid var(--lime);
+	outline-offset: 3px;
+}
