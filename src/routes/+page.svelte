@@ -23,9 +23,9 @@
 				<h1 class="display">{m.title}</h1>
 				<p class="tag">{m.tagline}</p>
 				<div class="chips">
-					<span class="chip">{m.genre}</span>
-					<span class="chip">{m.duration_min} min</span>
-					<span class="chip">{m.age_rating}</span>
+					{#if m.genre}<span class="chip">{m.genre}</span>{/if}
+					{#if m.duration_min}<span class="chip">{m.duration_min} min</span>{/if}
+					{#if m.age_rating}<span class="chip">{m.age_rating}</span>{/if}
 				</div>
 				<dl class="facts">
 					<div><dt>Próxima función</dt><dd>{fechaLarga(m.next!)} · {hora(m.next!)}</dd></div>

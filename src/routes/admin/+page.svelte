@@ -36,6 +36,12 @@
 	<div class="wrap admin">
 		<AdminNav />
 
+		{#if data.ephemeralDb}
+			<p class="err box">
+				Modo demostración: la base de datos es temporal y se reinicia sola. Para producción configura <b>DATABASE_URL</b> (o súbelo
+				a Namecheap). Si la tasa dice «manual», es una tasa de ejemplo porque el BCV no respondió.
+			</p>
+		{/if}
 		{#if form?.notice}<p class="notice">{form.notice}</p>{/if}
 		{#if form?.error}<p class="err box">{form.error}</p>{/if}
 

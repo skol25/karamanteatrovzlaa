@@ -8,7 +8,13 @@ import { seed } from './seed';
  *  - Namecheap / local: archivo SQLite (DATABASE_URL=file:./data/karamantea.db)
  *  - Vercel: Turso (DATABASE_URL=libsql://... + DATABASE_AUTH_TOKEN)
  */
-if (config.databaseUrl.startsWith('file:')) fs.mkdirSync(config.dataDir, { recursive: true });
+if (config.databaseUrl.startsWith('file:')) {
+	try {
+		fs.mkdirSync(config.dataDir, { recursive: true });
+	} catch (e) {
+		console.error('[db] no se pudo crear la carpeta de datos', config.dataDir, e);
+	}
+}
 
 export const client: Client = createClient({ url: config.databaseUrl, authToken: config.databaseToken });
 

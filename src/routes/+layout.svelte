@@ -9,6 +9,10 @@
 
 <svelte:head><title>Karamantea Teatro</title></svelte:head>
 
+{#if data.demo}
+	<div class="demo">Versión de demostración · los datos se reinician · panel: <a href="/admin">/admin</a> (clave <b>demo1234</b>)</div>
+{/if}
+
 <header class="top">
 	<div class="wrap bar">
 		<a href="/" class="brand" aria-label="Karamantea Teatro, inicio">
@@ -43,13 +47,17 @@
 	<div class="wrap fgrid">
 		<div class="fbrand">
 			<img src="/logo.png" alt="Karamantea Teatro" width="88" height="88" />
-			<p>Teatro hecho en Caracas.<br />Dos rostros, una misma escena.</p>
+			<p>Karamantea Group Producciones.<br />Dos rostros, una misma escena.</p>
 		</div>
 		<div>
 			<span class="eyebrow">Síguenos</span>
 			<a class="ig" href="https://instagram.com/karamanteatrovzla" target="_blank" rel="noopener">
 				<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" /></svg>
 				@karamanteatrovzla
+			</a>
+			<a class="ig" href="https://wa.me/584249392784" target="_blank" rel="noopener">
+				<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" /></svg>
+				Taquilla: 0424 939 27 84
 			</a>
 		</div>
 		<div class="legal">
@@ -61,6 +69,17 @@
 </footer>
 
 <style>
+	.demo {
+		background: var(--lime);
+		color: var(--ink);
+		text-align: center;
+		font-size: 12px;
+		font-weight: 700;
+		padding: 7px 16px;
+	}
+	.demo a {
+		text-decoration: underline;
+	}
 	.top {
 		position: sticky;
 		top: 0;

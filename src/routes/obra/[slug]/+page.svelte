@@ -41,13 +41,13 @@
 			<h1 class="display">{s.title}</h1>
 			<p class="tag">{s.tagline}</p>
 			<div class="chips">
-				<span class="chip">{s.genre}</span>
-				<span class="chip">{s.duration_min} min</span>
-				<span class="chip">{s.age_rating}</span>
+				{#if s.genre}<span class="chip">{s.genre}</span>{/if}
+				{#if s.duration_min}<span class="chip">{s.duration_min} min</span>{/if}
+				{#if s.age_rating}<span class="chip">{s.age_rating}</span>{/if}
 			</div>
 			<p class="syn">{s.synopsis}</p>
 			<dl class="credits">
-				{#if s.director}<div><dt>Dirección</dt><dd>{s.director.replace(/^Dirección:\s*/, '')}</dd></div>{/if}
+				{#if s.director}<div><dt>Escrita y dirigida por</dt><dd>{s.director.replace(/^Dirección:\s*/, '')}</dd></div>{/if}
 				{#if s.cast_list}<div><dt>Elenco</dt><dd>{s.cast_list}</dd></div>{/if}
 			</dl>
 		</div>
@@ -95,7 +95,7 @@
 				{#if selected}
 					<aside class="box card">
 						<h3>{fechaLarga(selected.starts_at)}</h3>
-						<p class="when">{hora(selected.starts_at)} · Duración {s.duration_min} min</p>
+						<p class="when">{hora(selected.starts_at)}{s.duration_min ? ` · Duración ${s.duration_min} min` : ''}</p>
 						<div class="loc">
 							<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
 							<div>

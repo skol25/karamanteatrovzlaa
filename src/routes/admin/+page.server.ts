@@ -4,6 +4,7 @@ import { checkPassword, login, logout } from '#lib/server/auth.ts';
 import { currentRate, recentRates, refreshFromBcv, saveRate, fetchStatus } from '#lib/server/bcv.ts';
 import { confirmReservation, rejectReservation, sweepExpired, BookingError } from '#lib/server/reservations.ts';
 import { todayCaracas } from '#lib/server/time.ts';
+import { ephemeralDb } from '#lib/server/config.ts';
 
 export const load = async ({ locals }) => {
 	if (!locals.admin) return { authed: false as const };
@@ -16,6 +17,7 @@ export const load = async ({ locals }) => {
 	);
 	return {
 		authed: true as const,
+		ephemeralDb,
 		rows,
 		current: await currentRate(),
 		rates: await recentRates(8),

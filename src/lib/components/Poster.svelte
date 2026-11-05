@@ -12,9 +12,9 @@
 	const uid = Math.random().toString(36).slice(2, 8);
 </script>
 
-<div class="poster v{v} {size}" class:past>
+<div class="poster v{v} {size}" class:past class:img={!!poster}>
 	{#if poster}
-		<img src={'/archivo/' + poster} alt={'Afiche de ' + title} loading="lazy" />
+		<img src={poster.startsWith('/') ? poster : '/archivo/' + poster} alt={'Afiche de ' + title} loading="lazy" />
 	{:else}
 		<svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
 			<defs>
@@ -64,6 +64,11 @@
 	.poster {
 		position: relative;
 		aspect-ratio: 3 / 4;
+	}
+	.poster.img {
+		aspect-ratio: 2 / 3;
+	}
+	.poster {
 		border-radius: 14px;
 		overflow: hidden;
 		background: #0d0d0d;
