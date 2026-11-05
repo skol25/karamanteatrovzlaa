@@ -27,7 +27,7 @@
 			{#if eyebrow}<span class="eyebrow">{eyebrow}</span>{/if}
 			<h2 class="display">{label}</h2>
 		</div>
-		<div class="nav">
+		<div class="nav" class:hidden={atStart && atEnd}>
 			<button class="arrow" onclick={() => go(-1)} disabled={atStart} aria-label="Anterior">
 				<svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" /></svg>
 			</button>
@@ -53,12 +53,15 @@
 		margin-bottom: 22px;
 	}
 	h2 {
-		margin: 8px 0 0;
-		font-size: clamp(20px, 3vw, 30px);
+		margin: 10px 0 0;
+		font-size: clamp(24px, 3vw, 34px);
 	}
 	.nav {
 		display: flex;
 		gap: 8px;
+	}
+	.nav.hidden {
+		display: none;
 	}
 	.arrow {
 		width: 44px;

@@ -32,6 +32,9 @@
 	<meta name="description" content={s.tagline} />
 </svelte:head>
 
+{#if s.poster}
+	<div class="backdrop" style="background-image:url('{s.poster.startsWith('/') ? s.poster : '/archivo/' + s.poster}')" aria-hidden="true"></div>
+{/if}
 <article class="wrap detail">
 	<a href="/" class="back">← Cartelera</a>
 	<div class="top">
@@ -59,7 +62,7 @@
 			<h2 class="display">Funciones realizadas</h2>
 			<ul class="pastlist">
 				{#each data.perfs as p (p.id)}
-					<li>{fechaLarga(p.starts_at)} · {hora(p.starts_at)} — {p.venue}</li>
+					<li>{new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(p.starts_at))} — {p.venue}</li>
 				{/each}
 			</ul>
 			<p class="muted">Esta obra ya no tiene funciones disponibles. Revisa la <a class="lnk" href="/#cartelera">cartelera actual</a>.</p>
@@ -135,8 +138,29 @@
 </article>
 
 <style>
+	.backdrop {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 0;
+		height: 720px;
+		z-index: -1;
+		background-size: cover;
+		background-position: center;
+		filter: blur(50px) saturate(1.2);
+		opacity: 0.28;
+		mask-image: linear-gradient(to bottom, #000 30%, transparent);
+		pointer-events: none;
+	}
 	.detail {
+		position: relative;
 		padding-top: 28px;
+	}
+	.pwrap {
+		border-radius: 16px;
+		box-shadow:
+			0 30px 80px -20px #000,
+			0 0 0 1px #ffffff14;
 	}
 	.back {
 		font-size: 14px;

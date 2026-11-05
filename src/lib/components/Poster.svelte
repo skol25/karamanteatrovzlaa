@@ -14,7 +14,9 @@
 
 <div class="poster v{v} {size}" class:past class:img={!!poster}>
 	{#if poster}
-		<img src={poster.startsWith('/') ? poster : '/archivo/' + poster} alt={'Afiche de ' + title} loading="lazy" />
+		{@const src = poster.startsWith('/') ? poster : '/archivo/' + poster}
+		<img class="bg" {src} alt="" aria-hidden="true" loading="lazy" />
+		<img class="fg" {src} alt={'Afiche de ' + title} loading="lazy" />
 	{:else}
 		<svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
 			<defs>
@@ -63,10 +65,14 @@
 <style>
 	.poster {
 		position: relative;
-		aspect-ratio: 3 / 4;
-	}
-	.poster.img {
 		aspect-ratio: 2 / 3;
+	}
+	.poster.img img.bg {
+		filter: blur(18px) brightness(0.6);
+		transform: scale(1.15);
+	}
+	.poster.img img.fg {
+		object-fit: contain;
 	}
 	.poster {
 		border-radius: 14px;

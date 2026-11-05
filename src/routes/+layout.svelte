@@ -10,7 +10,7 @@
 <svelte:head><title>Karamantea Teatro</title></svelte:head>
 
 {#if data.demo}
-	<div class="demo">Versión de demostración · los datos se reinician · panel: <a href="/admin">/admin</a> (clave <b>demo1234</b>)</div>
+	<div class="demo"><span class="dot"></span>Versión de demostración · los datos se reinician · Panel: <a href="/admin">/admin</a> · clave <b>demo1234</b></div>
 {/if}
 
 <header class="top">
@@ -21,9 +21,9 @@
 		</a>
 		<nav class:open>
 			{#if !isAdmin}
-				<a href="/#cartelera" onclick={() => (open = false)}>Cartelera</a>
+				<a href="/" onclick={() => (open = false)}>Cartelera</a>
 				<a href="/#funciones" onclick={() => (open = false)}>Funciones</a>
-				<a href="/#historial" onclick={() => (open = false)}>Ya pasaron</a>
+				<a href="https://wa.me/584249392784" target="_blank" rel="noopener" onclick={() => (open = false)}>Contacto</a>
 			{:else}
 				<a href="/">Ver sitio</a>
 			{/if}
@@ -69,13 +69,26 @@
 </footer>
 
 <style>
+	main {
+		position: relative;
+		isolation: isolate;
+	}
 	.demo {
-		background: var(--lime);
-		color: var(--ink);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		background: #141414;
+		border-bottom: 1px solid var(--line);
+		color: var(--mist);
 		text-align: center;
 		font-size: 12px;
-		font-weight: 700;
 		padding: 7px 16px;
+	}
+	.demo b,
+	.demo a {
+		color: var(--paper);
 	}
 	.demo a {
 		text-decoration: underline;
@@ -104,6 +117,9 @@
 		line-height: 1.1;
 	}
 	.name .display {
+		font-family: var(--display);
+		font-weight: 400;
+		text-transform: uppercase;
 		font-size: 14px;
 		letter-spacing: 0.22em;
 	}
