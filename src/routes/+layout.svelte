@@ -21,8 +21,8 @@
 		</a>
 		<nav class:open>
 			{#if !isAdmin}
-				<a href="/" onclick={() => (open = false)}>Cartelera</a>
-				<a href="/#funciones" onclick={() => (open = false)}>Funciones</a>
+				<a href="/#funciones" onclick={() => (open = false)}>Próximos eventos</a>
+				<a href="/#trayectoria" onclick={() => (open = false)}>Trayectoria</a>
 				<a href="https://wa.me/584249392784" target="_blank" rel="noopener" onclick={() => (open = false)}>Contacto</a>
 			{:else}
 				<a href="/">Ver sitio</a>

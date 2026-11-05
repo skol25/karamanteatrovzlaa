@@ -40,7 +40,7 @@
 	<div class="top">
 		<div class="pwrap"><Poster title={s.title} variant={s.variant} poster={s.poster} past={isPast} size="lg" /></div>
 		<div class="info">
-			<span class="eyebrow">{isPast ? 'Temporada finalizada' : 'En cartelera'}</span>
+			<span class="eyebrow">{isPast ? 'Evento realizado' : 'En cartelera'}</span>
 			<h1 class="display">{s.title}</h1>
 			<p class="tag">{s.tagline}</p>
 			<div class="chips">
@@ -58,14 +58,14 @@
 
 	<section id="funciones" class="funcs">
 		{#if isPast}
-			<span class="eyebrow">Historial</span>
+			<span class="eyebrow">Nuestra trayectoria</span>
 			<h2 class="display">Funciones realizadas</h2>
 			<ul class="pastlist">
 				{#each data.perfs as p (p.id)}
 					<li>{new Intl.DateTimeFormat('es-VE', { timeZone: 'America/Caracas', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(p.starts_at))} — {p.venue}</li>
 				{/each}
 			</ul>
-			<p class="muted">Esta obra ya no tiene funciones disponibles. Revisa la <a class="lnk" href="/#cartelera">cartelera actual</a>.</p>
+			<p class="muted">Por ahora no hay nuevas funciones de esta obra. Revisa los <a class="lnk" href="/#funciones">próximos eventos</a>.</p>
 		{:else}
 			<span class="eyebrow">Paso 1 de 3</span>
 			<h2 class="display">Elige tu función</h2>

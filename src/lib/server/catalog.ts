@@ -21,6 +21,8 @@ export async function perfsFor(showId?: number): Promise<PerfRow[]> {
 }
 
 const isFuture = (iso: string) => new Date(iso).getTime() > Date.now();
+/** "Hotel Tibisay · Maturín" → "Maturín" */
+export const cityOf = (venue: string) => (venue.split('·').at(-1) ?? venue).trim();
 
 export async function catalog() {
 	const shows = await all<Show>('SELECT * FROM shows ORDER BY id');
@@ -35,17 +37,28 @@ export async function catalog() {
 			first: ps[0]?.starts_at ?? null,
 			last: ps.at(-1)?.starts_at ?? null,
 			minPrice: upcoming.length ? Math.min(...upcoming.map((p) => p.price_usd)) : null,
-			venue: (upcoming[0] ?? ps.at(-1))?.venue ?? ''
+			venue: (upcoming[0] ?? ps.at(-1))?.venue ?? '',
+			count: ps.length,
+			cities: [...new Set(ps.map((p) => cityOf(p.venue)))]
 		};
 	});
 	const current = enriched.filter((s) => s.upcoming > 0).sort((a, b) => a.next!.localeCompare(b.next!));
 	const past = enriched.filter((s) => s.upcoming === 0 && s.last).sort((a, b) => b.last!.localeCompare(a.last!));
 	const main = current.find((s) => s.featured) ?? current[0] ?? null;
+	// el destacado va primero en el banner
+	const slides = main ? [main, ...current.filter((s) => s.id !== main.id)] : [];
 	const upcomingPerfs = perfs
 		.filter((p) => isFuture(p.starts_at))
 		.map((p) => {
 			const s = shows.find((x) => x.id === p.show_id)!;
-			return { ...p, title: s.title, slug: s.slug, variant: s.variant, poster: s.poster, left: p.capacity - p.taken };
+			return { ...p, title: s.title, slug: s.slug, variant: s.variant, poster: s.poster, genre: s.genre, left: p.capacity - p.taken, city: cityOf(p.venue) };
 		});
-	return { main, current, past, upcomingPerfs };
+	const pastPerfs = perfs.filter((p) => !isFuture(p.starts_at));
+	const stats = {
+		shows: enriched.filter((s) => s.count > 0).length,
+		performances: pastPerfs.length,
+		cities: new Set(pastPerfs.map((p) => cityOf(p.venue))).size,
+		since: perfs[0] ? new Date(perfs[0].starts_at).getFullYear() : null
+	};
+	return { main, slides, current, past, upcomingPerfs, stats };
 }
