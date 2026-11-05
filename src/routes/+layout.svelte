@@ -1,7 +1,6 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
-	import { rateFmt } from '#lib/format.ts';
 	let { children, data } = $props();
 	let open = $state(false);
 	const isAdmin = $derived(page.url.pathname.startsWith('/admin'));
@@ -28,13 +27,6 @@
 				<a href="/">Ver sitio</a>
 			{/if}
 		</nav>
-		<div class="rate" title="Tasa oficial del Banco Central de Venezuela">
-			{#if data.rate}
-				<span class="dot"></span>BCV <b>{rateFmt(data.rate.rate)}</b>
-			{:else}
-				<span class="dot off"></span>Tasa BCV pendiente
-			{/if}
-		</div>
 		<button class="burger" onclick={() => (open = !open)} aria-label="Menú" aria-expanded={open}>
 			<span></span><span></span>
 		</button>
@@ -141,30 +133,12 @@
 	nav a:hover {
 		color: var(--lime);
 	}
-	.rate {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		font-size: 12px;
-		color: var(--mist);
-		border: 1px solid var(--line);
-		padding: 7px 13px;
-		border-radius: 999px;
-		white-space: nowrap;
-	}
-	.rate b {
-		color: var(--paper);
-	}
 	.dot {
 		width: 7px;
 		height: 7px;
 		border-radius: 50%;
 		background: var(--lime);
 		box-shadow: 0 0 0 4px var(--lime-soft);
-	}
-	.dot.off {
-		background: var(--danger);
-		box-shadow: none;
 	}
 	.burger {
 		display: none;
@@ -231,11 +205,9 @@
 		.bar {
 			gap: 12px;
 		}
-		.rate {
-			margin-left: auto;
-		}
 		.burger {
 			display: flex;
+			margin-left: auto;
 		}
 		nav {
 			display: none;
@@ -261,12 +233,6 @@
 		}
 		.name {
 			display: none;
-		}
-	}
-	@media (max-width: 380px) {
-		.rate {
-			font-size: 11px;
-			padding: 6px 10px;
 		}
 	}
 </style>
