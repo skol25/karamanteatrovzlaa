@@ -7,6 +7,7 @@ import { allSeatIds, sortSeats } from '#lib/seats.ts';
 import { sendMail, layout, esc } from './mail';
 import { bs, rateFmt, fechaLarga, fechaCorta, hora } from '#lib/format.ts';
 import { audit } from './audit';
+import { adminEmails } from './settings';
 
 export type Performance = {
 	id: number;
@@ -272,7 +273,12 @@ async function notifyAdmin(r: FullRes, receipt: Buffer) {
 	</td></tr></table>
 	<a href="${link}" style="display:inline-block;background:#abce26;color:#0b0b0b;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px">Abrir panel de administración</a>
 	<p style="color:#8a8a8a;font-size:12px;margin-top:18px">Código de reserva: ${esc(r.token.slice(0, 8).toUpperCase())} · El comprobante va adjunto.</p>`;
-	await sendMail(config.adminEmail, `Nuevo pago · ${r.performance.title} · ${r.qty} entrada(s) · ${bs(r.total_bs)}`, layout('Nuevo comprobante de pago', body), [
+	const to = await adminEmails();
+	if (!to.length) {
+		console.warn('[correo] no hay correo de administración configurado: el aviso de pago solo queda en /admin');
+		return;
+	}
+	await sendMail(to.join(', '), `Nuevo pago · ${r.performance.title} · ${r.qty} entrada(s) · ${bs(r.total_bs)}`, layout('Nuevo comprobante de pago', body), [
 		{ filename: `comprobante-${r.token.slice(0, 8).toUpperCase()}${ALLOWED[r.receipt_mime!] ?? ''}`, content: receipt, contentType: r.receipt_mime || undefined }
 	]);
 }

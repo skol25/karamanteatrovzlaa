@@ -11,6 +11,7 @@
 		<a href="/admin/videos" class:on={page.url.pathname === '/admin/videos'}>Videos</a>
 		<a href="/admin/correos" class:on={page.url.pathname === '/admin/correos'}>Correos</a>
 		<a href="/admin/auditoria" class:on={page.url.pathname === '/admin/auditoria'}>Auditoría</a>
+		<a href="/admin/ajustes" class:on={page.url.pathname === '/admin/ajustes'}>Ajustes</a>
 	</div>
 	<form method="POST" action="/admin?/logout" use:enhance><button>Cerrar sesión</button></form>
 </div>

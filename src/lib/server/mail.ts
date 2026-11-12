@@ -24,6 +24,12 @@ const transport = smtpReady
 const canSend = !!transport;
 const replyTo = process.env.MAIL_REPLY_TO || undefined;
 
+/** Cómo está saliendo el correo (para mostrarlo en /admin/ajustes) */
+export const mailStatus = () => ({
+	mode: smtpReady ? 'smtp' : useSendmail ? 'sendmail' : 'none',
+	from: config.smtp.from
+});
+
 export type Attachment = { filename: string; content: Buffer; contentType?: string };
 
 /**

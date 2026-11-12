@@ -87,6 +87,8 @@ export const ACTIONS: Record<string, string> = {
 	metodo_activado: 'Método de pago activado',
 	metodo_desactivado: 'Método de pago desactivado',
 	metodo_borrado: 'Método de pago eliminado',
+	ajustes_correo: 'Correos de aviso',
+	correo_prueba: 'Correo de prueba',
 	video_creado: 'Video agregado',
 	video_editado: 'Video editado',
 	video_visible: 'Video visible',

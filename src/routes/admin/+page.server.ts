@@ -6,6 +6,7 @@ import { confirmReservation, rejectReservation, sweepExpired, BookingError } fro
 import { todayCaracas } from '#lib/server/time.ts';
 import { ephemeralDb } from '#lib/server/config.ts';
 import { audit, clientIp } from '#lib/server/audit.ts';
+import { adminEmails } from '#lib/server/settings.ts';
 import { get } from '#lib/server/db.ts';
 import { describeReservation } from '#lib/server/reservations.ts';
 
@@ -20,6 +21,7 @@ export const load = async ({ locals }) => {
 	);
 	return {
 		authed: true as const,
+		noAdminEmail: !(await adminEmails()).length,
 		ephemeralDb,
 		rows,
 		current: await currentRate(),

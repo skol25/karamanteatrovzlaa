@@ -36,6 +36,10 @@
 	<div class="wrap admin">
 		<AdminNav />
 
+		{#if data.noAdminEmail}
+			<p class="mailwarn">Los avisos de pago no le están llegando a nadie. <a href="/admin/ajustes">Configura el correo que recibe los comprobantes →</a></p>
+		{/if}
+
 		{#if data.ephemeralDb}
 			<p class="err box">
 				Modo demostración: la base de datos es temporal y se reinicia sola. Para producción configura <b>DATABASE_URL</b> (o súbelo
@@ -153,6 +157,18 @@
 {/if}
 
 <style>
+	.mailwarn {
+		margin: 0;
+		background: #a15c0014;
+		border: 1px solid #a15c0055;
+		color: var(--warn);
+		padding: 12px 16px;
+		font-size: 14px;
+	}
+	.mailwarn a {
+		font-weight: 700;
+		text-decoration: underline;
+	}
 	.login {
 		display: grid;
 		place-items: center;
