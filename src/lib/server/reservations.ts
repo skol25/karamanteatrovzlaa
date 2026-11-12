@@ -4,9 +4,10 @@ import { config } from './config';
 import { currentRate } from './bcv';
 import { saveFile, readFile, deleteFile } from './files';
 import { allSeatIds, sortSeats } from '#lib/seats.ts';
-import { sendMail, layout, esc } from './mail';
-import { bs, rateFmt, fechaLarga, fechaCorta, hora } from '#lib/format.ts';
+import { sendMail } from './mail';
+import { bs, fechaCorta } from '#lib/format.ts';
 import { audit } from './audit';
+import { adminPaymentMail, buyerReceivedMail, ticketsMail, rejectedMail, resCode } from './emails';
 import { adminEmails } from './settings';
 
 export type Performance = {
@@ -245,49 +246,21 @@ export async function submitPayment(token: string, input: PaymentInput) {
 
 type FullRes = NonNullable<Awaited<ReturnType<typeof getReservation>>>;
 
-function summaryTable(r: FullRes) {
-	const p = r.performance;
-	const row = (k: string, v: string) =>
-		`<tr><td style="padding:6px 0;color:#8a8a8a;font-size:13px;width:150px">${k}</td><td style="padding:6px 0;color:#fff;font-size:14px">${v}</td></tr>`;
-	return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px">
-	${row('Obra', esc(p.title))}
-	${row('Función', esc(fechaLarga(p.starts_at)) + ' · ' + esc(hora(p.starts_at)))}
-	${row('Sala', esc(p.venue))}
-	${row('Dirección', esc(p.address))}
-	${row('Asientos', `<b style="color:#abce26">${esc(r.seats.join(', '))}</b>`)}
-	${row('Entradas', String(r.qty))}
-	${row('Total pagado', `<b>${bs(r.total_bs)}</b>`)}
-	${row('Tasa BCV', `${rateFmt(r.rate)} Bs/USD (fecha valor ${esc(r.rate_date)})`)}
-	</table>`;
-}
-
 async function notifyAdmin(r: FullRes, receipt: Buffer) {
-	const link = `${config.siteUrl}/admin`;
-	const body = `<p style="color:#cfcfcf;font-size:14px;line-height:1.6">Se recibió un nuevo comprobante de pago. Revísalo y confirma para enviar las entradas al comprador.</p>
-	${summaryTable(r)}
-	<table width="100%" cellpadding="0" cellspacing="0" style="background:#1d1d1d;border-radius:10px;margin-bottom:20px">
-	<tr><td style="padding:14px;font-size:13px;color:#cfcfcf;line-height:1.7">
-	<b style="color:#fff">${esc(r.buyer_name)}</b> · C.I. ${esc(r.buyer_doc)}<br>
-	${esc(r.email)} · ${esc(r.phone)}<br>
-	Pagó a: ${esc(r.pay_method)} · Desde: ${esc(r.pay_bank)} · Ref. <b style="color:#fff">${esc(r.pay_ref)}</b>
-	</td></tr></table>
-	<a href="${link}" style="display:inline-block;background:#abce26;color:#0b0b0b;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px">Abrir panel de administración</a>
-	<p style="color:#8a8a8a;font-size:12px;margin-top:18px">Código de reserva: ${esc(r.token.slice(0, 8).toUpperCase())} · El comprobante va adjunto.</p>`;
 	const to = await adminEmails();
 	if (!to.length) {
 		console.warn('[correo] no hay correo de administración configurado: el aviso de pago solo queda en /admin');
 		return;
 	}
-	await sendMail(to.join(', '), `Nuevo pago · ${r.performance.title} · ${r.qty} entrada(s) · ${bs(r.total_bs)}`, layout('Nuevo comprobante de pago', body), [
-		{ filename: `comprobante-${r.token.slice(0, 8).toUpperCase()}${ALLOWED[r.receipt_mime!] ?? ''}`, content: receipt, contentType: r.receipt_mime || undefined }
+	const m = adminPaymentMail(r);
+	await sendMail(to.join(', '), m.subject, m.html, [
+		{ filename: `comprobante-${resCode(r)}${ALLOWED[r.receipt_mime!] ?? ''}`, content: receipt, contentType: r.receipt_mime || undefined }
 	]);
 }
 
 async function notifyBuyerReceived(r: FullRes) {
-	const body = `<p style="color:#cfcfcf;font-size:14px;line-height:1.6">Hola ${esc(r.buyer_name)}, recibimos tu comprobante de pago. Nuestro equipo lo está verificando y en unos momentos recibirás tus entradas en este mismo correo.</p>
-	${summaryTable(r)}
-	<p style="color:#8a8a8a;font-size:12px">Código de reserva: <b style="color:#fff">${esc(r.token.slice(0, 8).toUpperCase())}</b>. Tus asientos quedan apartados mientras verificamos el pago.</p>`;
-	await sendMail(r.email!, `Recibimos tu pago · ${r.performance.title}`, layout('¡Pago registrado!', body));
+	const m = buyerReceivedMail(r);
+	await sendMail(r.email!, m.subject, m.html);
 }
 
 /** El admin confirma el pago: se envían las entradas al comprador */
@@ -296,23 +269,8 @@ export async function confirmReservation(id: number) {
 	if (!r) throw new BookingError('La reserva no está pendiente de revisión.');
 	await run(`UPDATE reservations SET status='confirmed', resolved_at=? WHERE id=?`, [Date.now(), id]);
 	const full = (await getReservation(r.token))!;
-	const code = full.token.slice(0, 8).toUpperCase();
-	const tickets = full.seats
-		.map(
-			(s, i) => `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;border:1px dashed #abce26;border-radius:12px">
-		<tr><td style="padding:16px 18px">
-		<div style="font-size:11px;letter-spacing:3px;color:#abce26">ENTRADA ${i + 1} DE ${full.qty}</div>
-		<div style="font-size:18px;color:#fff;margin:6px 0 4px;font-weight:bold">${esc(full.performance.title)}</div>
-		<div style="font-size:13px;color:#cfcfcf">${esc(fechaLarga(full.performance.starts_at))} · ${esc(hora(full.performance.starts_at))} · ${esc(full.performance.venue)}</div>
-		</td><td style="padding:16px 18px;text-align:right;border-left:1px dashed #3a3a3a;width:110px">
-		<div style="font-size:11px;color:#8a8a8a">ASIENTO</div><div style="font-size:28px;color:#abce26;font-weight:bold">${esc(s)}</div>
-		<div style="font-size:11px;color:#8a8a8a">${code}-${i + 1}</div></td></tr></table>`
-		)
-		.join('');
-	const body = `<p style="color:#cfcfcf;font-size:14px;line-height:1.6">Hola ${esc(full.buyer_name)}, tu pago fue verificado. Estas son tus entradas: muéstralas en la entrada de la sala (impresas o en el teléfono).</p>
-	${tickets}${summaryTable(full)}
-	<p style="color:#8a8a8a;font-size:12px">Te recomendamos llegar 20 minutos antes. ¿Cómo llegar? <a style="color:#abce26" href="${esc(full.performance.maps_url)}">Ver mapa</a></p>`;
-	await sendMail(full.email!, `Tus entradas · ${full.performance.title}`, layout('¡Nos vemos en el teatro!', body));
+	const m = await ticketsMail(full);
+	await sendMail(full.email!, m.subject, m.html, m.attachments);
 	return full;
 }
 
@@ -325,11 +283,8 @@ export async function rejectReservation(id: number, note: string) {
 		{ sql: 'DELETE FROM reservation_seats WHERE reservation_id=?', args: [id] }
 	]);
 	const full = (await getReservation(r.token))!;
-	const body = `<p style="color:#cfcfcf;font-size:14px;line-height:1.6">Hola ${esc(full.buyer_name)}, no pudimos verificar tu pago para la siguiente reserva, por lo que los asientos fueron liberados.</p>
-	${note ? `<p style="color:#fff;background:#1d1d1d;padding:12px 14px;border-radius:10px;font-size:14px">${esc(note)}</p>` : ''}
-	${summaryTable(full)}
-	<p style="color:#8a8a8a;font-size:12px">Si crees que se trata de un error, responde a este correo con tu comprobante.</p>`;
-	await sendMail(full.email!, `No pudimos verificar tu pago · ${full.performance.title}`, layout('Pago no verificado', body));
+	const m = rejectedMail(full, note);
+	await sendMail(full.email!, m.subject, m.html);
 }
 
 export { readFile };

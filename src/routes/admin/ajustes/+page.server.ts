@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { adminEmails, getSetting, setSetting, parseEmails, invalidEmails } from '#lib/server/settings.ts';
-import { sendMail, layout, mailStatus } from '#lib/server/mail.ts';
+import { sendMail, mailStatus } from '#lib/server/mail.ts';
+import { testMail } from '#lib/server/emails.ts';
 import { audit } from '#lib/server/audit.ts';
 import { all } from '#lib/server/db.ts';
 
@@ -39,15 +40,9 @@ export const actions = {
 		if (!event.locals.admin) redirect(303, '/admin');
 		const to = await adminEmails();
 		if (!to.length) return fail(400, { error: 'Primero guarda al menos un correo.' });
-		const ok = await sendMail(
-			to.join(', '),
-			'Correo de prueba · Karamantea Teatro',
-			layout(
-				'¡Los avisos de pago te llegarán aquí!',
-				`<p style="color:#cfcfcf;font-size:14px;line-height:1.6">Este es un correo de prueba enviado desde el panel de administración de karamantea.com. Cada vez que un cliente reporte un pago, recibirás en este correo el aviso con el comprobante adjunto.</p>
-				<p style="color:#8a8a8a;font-size:12px">Si este correo llegó a la carpeta de spam, márcalo como "No es spam" para que los próximos lleguen a la bandeja de entrada.</p>`
-			)
-		);
+		const m = testMail();
+		const ok = await sendMail(to.join(', '), m.subject, m.html);
+
 		await audit(event, { kind: 'admin', action: 'correo_prueba', summary: `Envió un correo de prueba a ${to.join(', ')}${ok ? '' : ' (no se pudo enviar)'}` });
 		return ok
 			? { notice: `Correo de prueba enviado a ${to.join(', ')}. Revisa la bandeja de entrada (y spam).` }

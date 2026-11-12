@@ -30,7 +30,7 @@ export const mailStatus = () => ({
 	from: config.smtp.from
 });
 
-export type Attachment = { filename: string; content: Buffer; contentType?: string };
+export type Attachment = { filename: string; content: Buffer; contentType?: string; cid?: string };
 
 /**
  * Envía el correo por SMTP (si está configurado) y siempre lo registra en la tabla outbox,
