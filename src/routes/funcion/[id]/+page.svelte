@@ -78,7 +78,7 @@
 			limitMsg = `Puedes elegir hasta ${max} puestos por compra.`;
 			notify('warn', taken_.length ? `Solo se agregaron ${taken_.length} puestos de la mesa ${mesa}: el máximo por compra es ${max}.` : `Ya tienes ${max} puestos, el máximo por compra.`);
 		} else {
-			const total = data.map?.rows.flatMap((r) => r.tables).find((t) => String(t.n) === mesa)?.seats.length ?? ids.length;
+			const total = data.map?.tables.find((t) => String(t.n) === mesa)?.seatIds.length ?? ids.length;
 			notify(
 				'ok',
 				ids.length === total
@@ -88,21 +88,20 @@
 		}
 	}
 
-	// zonas con sus filas y mesas (para las pestañas y el resumen)
+	// zonas con sus mesas o filas (para las pestañas y el resumen)
 	const zoneInfo = $derived.by(() => {
 		if (!data.map) return [];
 		return data.map.zones
 			.map((z) => {
-				const rows = data.map!.rows.filter((r) => r.zone.id === z.id);
-				const idx = rows.map((r) => r.index + 1);
-				const tables = rows.flatMap((r) => r.tables.map((t) => t.n));
-				return {
-					z,
-					filas: idx.length > 1 ? `filas ${idx[0]} a ${idx.at(-1)}` : `fila ${idx[0]}`,
-					mesas: tables.length ? `mesas ${tables[0]}–${tables.at(-1)}` : ''
-				};
+				const seats = data.map!.seats.filter((s) => s.zone === z.id);
+				const tables = data.map!.tables.filter((t) => t.zone === z.id).map((t) => t.n).sort((a, b) => a - b);
+				const rows = [...new Set(seats.filter((s) => s.row).map((s) => s.row!))];
+				const parts: string[] = [];
+				if (tables.length) parts.push(tables.length > 1 ? `mesas ${tables[0]}–${tables.at(-1)}` : `mesa ${tables[0]}`);
+				if (rows.length) parts.push(rows.length > 1 ? `filas ${rows[0]}–${rows.at(-1)}` : `fila ${rows[0]}`);
+				return { z, where: parts.join(' · '), count: seats.length };
 			})
-			.filter((x) => x.mesas);
+			.filter((x) => x.count);
 	});
 
 	const rate = $derived(data.rate?.rate ?? null);
@@ -119,18 +118,20 @@
 
 	{#if data.past}
 		<p class="alert">Esta función ya pasó.</p>
-	{:else if data.left <= 0}
-		<p class="alert">Función agotada.</p>
+	{:else if data.state === 'soldout'}
+		<p class="alert big">¡Función agotada! Ya no quedan puestos disponibles. <a href="/#funciones">Ver otras funciones</a></p>
+	{:else if data.state === 'closed'}
+		<p class="alert big">Las ventas para esta función están cerradas. Escríbenos por <a href="https://wa.me/584249392784" target="_blank" rel="noopener">WhatsApp</a> si necesitas ayuda.</p>
 	{:else}
 		<div class="grid" class:mesas={!!data.map}>
 			<section class="hall card">
 				{#if data.map}
 					<div class="ztabs">
 						{#each zoneInfo as zi (zi.z.id)}
-							<span class="ztab"><i style="background:{zi.z.color}"></i><b>{zi.z.name}</b> · {zi.filas} · {zi.mesas}</span>
+							<span class="ztab"><i style="background:{zi.z.color}"></i><b>{zi.z.name}</b> · {zi.where}</span>
 						{/each}
 					</div>
-					<p class="howto">Toca una silla para elegir ese puesto, o toca el número de la mesa para elegir la mesa completa.</p>
+					<p class="howto">{data.map.tables.length ? 'Toca una silla para elegir ese puesto, o toca el número de la mesa para elegir la mesa completa.' : 'Toca los asientos que quieres en el plano.'}</p>
 					<MesaMap map={data.map} {taken} {picked} ontoggle={toggleMesa} ontable={pickTable} />
 					{#if toast}
 						<div class="toast {toast.kind}" role="status" aria-live="polite">
@@ -180,7 +181,7 @@
 					<div class="zlist">
 						<h3>Zonas</h3>
 						{#each zoneInfo as zi (zi.z.id)}
-							<div class="zrow"><span><i style="background:{zi.z.color}"></i>{zi.z.name}</span><small>{zi.filas.replace('filas', 'Filas').replace('fila', 'Fila')}</small></div>
+							<div class="zrow"><span><i style="background:{zi.z.color}"></i>{zi.z.name}</span><small>{zi.count} puestos</small></div>
 						{/each}
 					</div>
 					<div class="picked-list">
@@ -595,6 +596,14 @@
 			opacity: 0;
 			translate: -50% -8px;
 		}
+	}
+	.alert.big {
+		font-size: 16px;
+		padding: 18px 20px;
+	}
+	.alert a {
+		font-weight: 700;
+		text-decoration: underline;
 	}
 	.howto {
 		margin: 0 0 14px;

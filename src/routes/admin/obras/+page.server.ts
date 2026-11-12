@@ -1,9 +1,10 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { all, get, run, batch } from '#lib/server/db.ts';
-import { saveFile } from '#lib/server/files.ts';
+import { slugify, savePoster } from '#lib/server/shows.ts';
 import { perfsFor, type Show } from '#lib/server/catalog.ts';
 import { audit } from '#lib/server/audit.ts';
 import { fechaCorta, hora, usd } from '#lib/format.ts';
+import { saleState, SALE_LABEL } from '#lib/sales.ts';
 
 export const load = async ({ locals }) => {
 	if (!locals.admin) redirect(303, '/admin');
@@ -17,22 +18,13 @@ export const load = async ({ locals }) => {
 			...s,
 			perfs: perfs
 				.filter((p) => p.show_id === s.id)
-				.map((p) => ({ ...p, sold: sold.find((x) => x.performance_id === p.id)?.n ?? 0 }))
+				.map((p) => {
+					const state = saleState(p);
+					return { ...p, sold: sold.find((x) => x.performance_id === p.id)?.n ?? 0, state, stateLabel: SALE_LABEL[state] };
+				})
 		}))
 	};
 };
-
-const slugify = (t: string) =>
-	t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-const POSTER_TYPES: Record<string, string> = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
-
-async function savePoster(file: FormDataEntryValue | null) {
-	if (!(file instanceof File) || file.size === 0) return undefined;
-	const ext = POSTER_TYPES[file.type];
-	if (!ext || file.size > 3 * 1024 * 1024) throw new Error('El afiche debe ser JPG/PNG/WEBP de máximo 3 MB.');
-	return saveFile(Buffer.from(await file.arrayBuffer()), file.type, ext);
-}
 
 export const actions = {
 	obra: async (event) => {
@@ -114,6 +106,23 @@ export const actions = {
 			entityId: show?.slug ?? id
 		});
 		return { notice: 'Obra principal actualizada.' };
+	},
+	ventas: async (event) => {
+		if (!event.locals.admin) redirect(303, '/admin');
+		const fd = await event.request.formData();
+		const id = Number(fd.get('id'));
+		const status = fd.get('sales_status') === 'closed' ? 'closed' : 'open';
+		const p = await get<{ title: string; starts_at: string }>('SELECT s.title, p.starts_at FROM performances p JOIN shows s ON s.id=p.show_id WHERE p.id=?', [id]);
+		if (!p) return fail(404, { error: 'Función no encontrada.' });
+		await run('UPDATE performances SET sales_status=? WHERE id=?', [status, id]);
+		await audit(event, {
+			kind: 'admin',
+			action: status === 'open' ? 'ventas_abiertas' : 'ventas_cerradas',
+			summary: `${status === 'open' ? 'Abrió' : 'Cerró'} las ventas de «${p.title}» (${fechaCorta(p.starts_at)} ${hora(p.starts_at)})`,
+			entity: 'funcion',
+			entityId: id
+		});
+		return { notice: status === 'open' ? 'Ventas abiertas.' : 'Ventas cerradas.' };
 	},
 	borrarFuncion: async (event) => {
 		if (!event.locals.admin) redirect(303, '/admin');

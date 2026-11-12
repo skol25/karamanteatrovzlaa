@@ -190,7 +190,8 @@
 				<span class="eimg">
 					<Poster title={p.title} variant={p.variant} poster={p.poster} size="md" />
 					<span class="badge"><b>{dia(p.starts_at)}</b><small>{mes(p.starts_at)}</small></span>
-					{#if p.left <= 0}<span class="flag sold">Agotado</span>
+					{#if p.state === 'soldout'}<span class="flag sold">Agotado</span>
+					{:else if p.state === 'closed'}<span class="flag sold">Ventas cerradas</span>
 					{:else if p.left <= 20}<span class="flag few">Últimas {p.left}</span>{/if}
 				</span>
 				<span class="ebody">
@@ -198,7 +199,7 @@
 					<b>{p.title}</b>
 					<span class="ewhere">{p.venue.split('·')[0].trim()}</span>
 					<span class="ewhen"><span class="cap">{diaSemana(p.starts_at)}</span> {dia(p.starts_at)} {mes(p.starts_at)} · {hora(p.starts_at)}</span>
-					<span class="ebtn">{p.left <= 0 ? 'Ver detalle' : 'Comprar entradas'}</span>
+					<span class="ebtn" class:off={p.state !== 'open'}>{p.state === 'soldout' ? 'Agotado' : p.state === 'closed' ? 'Ventas cerradas' : 'Comprar entradas'}</span>
 				</span>
 			</a>
 		{/each}
@@ -659,6 +660,10 @@
 		padding: 13px 16px;
 		font-weight: 700;
 		font-size: 14px;
+	}
+	.ebtn.off {
+		background: var(--ink-3);
+		color: var(--mist);
 	}
 	.ecard:hover .ebtn {
 		background: #000;

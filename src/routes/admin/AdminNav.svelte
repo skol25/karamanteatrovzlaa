@@ -6,7 +6,9 @@
 <div class="anav">
 	<div class="links">
 		<a href="/admin" class:on={page.url.pathname === '/admin'}>Pagos y tasa</a>
+		<a href="/admin/eventos/nuevo" class:on={page.url.pathname === '/admin/eventos/nuevo'}>+ Nuevo evento</a>
 		<a href="/admin/obras" class:on={page.url.pathname === '/admin/obras'}>Obras y funciones</a>
+		<a href="/admin/salas" class:on={page.url.pathname.startsWith('/admin/salas')}>Salas</a>
 		<a href="/admin/pagos" class:on={page.url.pathname === '/admin/pagos'}>Métodos de pago</a>
 		<a href="/admin/videos" class:on={page.url.pathname === '/admin/videos'}>Videos</a>
 		<a href="/admin/correos" class:on={page.url.pathname === '/admin/correos'}>Correos</a>

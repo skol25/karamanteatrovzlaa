@@ -5,6 +5,7 @@ import { currentRate } from './bcv';
 import { saveFile, readFile, deleteFile } from './files';
 import { allSeatIds, sortSeats } from '#lib/seats.ts';
 import { parseMap, expandMap } from '#lib/seatmap.ts';
+import { saleState } from '#lib/sales.ts';
 import { sendMail } from './mail';
 import { bs, fechaCorta } from '#lib/format.ts';
 import { audit } from './audit';
@@ -21,6 +22,8 @@ export type Performance = {
 	price_usd: number;
 	capacity: number;
 	layout: string | null;
+	sales_status?: string | null;
+	sales_close_minutes?: number | null;
 };
 
 export type Reservation = {
@@ -146,6 +149,7 @@ export async function holdSeats(performanceId: number, seats: string[]): Promise
 	const perf = await getPerformance(performanceId);
 	if (!perf) throw new BookingError('La función no existe.');
 	if (new Date(perf.starts_at).getTime() <= Date.now()) throw new BookingError('Esta función ya comenzó o ya pasó.');
+	if (saleState({ ...perf, taken: 0 }) === 'closed') throw new BookingError('Las ventas para esta función están cerradas.');
 
 	const unique = [...new Set(seats)];
 	if (unique.length === 0) throw new BookingError('Selecciona al menos un asiento.');

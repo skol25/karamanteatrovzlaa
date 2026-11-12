@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import AdminNav from '../AdminNav.svelte';
 	import Poster from '#lib/components/Poster.svelte';
-	import { usd, fechaLarga, hora } from '#lib/format.ts';
+	import { fechaLarga, hora } from '#lib/format.ts';
 
 	let { data, form } = $props();
 	let variant = $state(0);
@@ -14,6 +15,7 @@
 
 <div class="wrap admin">
 	<AdminNav />
+	{#if page.url.searchParams.get('creado')}<p class="notice">Evento creado: {page.url.searchParams.get('creado')} función(es). Ya aparecen abajo y en la página.</p>{/if}
 	{#if form?.notice}<p class="notice">{form.notice}</p>{/if}
 	{#if form?.error}<p class="err">{form.error}</p>{/if}
 
@@ -46,24 +48,12 @@
 			<button class="btn btn-lime">Crear obra</button>
 		</form>
 
-		<form class="card" method="POST" action="?/funcion" use:enhance>
-			<h2>Nueva función</h2>
-			<div class="field"><label for="sh">Obra</label>
-				<select class="input" id="sh" name="show_id" required>
-					{#each data.shows as s (s.id)}<option value={s.id}>{s.title}</option>{/each}
-				</select>
-			</div>
-			<div class="field"><label for="dt">Fecha y hora (Caracas)</label><input class="input" id="dt" name="starts_at" type="datetime-local" required /></div>
-			<div class="field"><label for="ve">Sala</label><input class="input" id="ve" name="venue" required placeholder="Trasnocho Cultural · Sala principal" /></div>
-			<div class="field"><label for="ad">Dirección</label><input class="input" id="ad" name="address" /></div>
-			<div class="field"><label for="mp">Enlace de Google Maps</label><input class="input" id="mp" name="maps_url" type="url" /></div>
-			<div class="g2">
-				<div class="field"><label for="pr">Precio (USD ref.)</label><input class="input" id="pr" name="price_usd" inputmode="decimal" required /></div>
-				<div class="field"><label for="cp">Personas admitidas</label><input class="input" id="cp" name="capacity" type="number" min="1" max="1000" required /></div>
-			</div>
-			<p class="muted">El plano de asientos se genera automáticamente según las personas admitidas. El cobro se hace en bolívares a la tasa BCV del día.</p>
-			<button class="btn btn-lime">Agregar función</button>
-		</form>
+		<div class="card cta">
+			<h2>Nuevo evento</h2>
+			<p class="muted">Crea funciones de una obra con su fecha, sala, plano (mesas, teatro o cine), tipos de entrada y precios, y decide cuándo abren y cierran las ventas.</p>
+			<a class="btn btn-lime" href="/admin/eventos/nuevo">+ Crear evento</a>
+			<a class="linkbtn" href="/admin/salas">Ver salas guardadas</a>
+		</div>
 	</div>
 
 	<h2 class="display ttl">Obras</h2>
@@ -85,9 +75,18 @@
 								<tr class:past={isPast(p.starts_at)}>
 									<td class="cap">{fechaLarga(p.starts_at)} · {hora(p.starts_at)}</td>
 									<td>{p.venue}</td>
-									<td>{usd(p.price_usd)}</td>
+									<td><span class="st {p.state}">{p.stateLabel}</span></td>
 									<td>{p.sold} vendidas · {p.taken}/{p.capacity} ocupados</td>
-									<td><a class="linkbtn" href="/admin/plano/{p.id}">{p.layout ? 'Plano de mesas' : 'Plano'}</a></td>
+									<td class="acts">
+										<a class="linkbtn" href="/admin/plano/{p.id}">Gestionar</a>
+										{#if p.state !== 'past'}
+											<form method="POST" action="?/ventas" use:enhance>
+												<input type="hidden" name="id" value={p.id} />
+												{#if p.sales_status === 'closed'}<button class="linkbtn" name="sales_status" value="open">Abrir ventas</button>
+												{:else}<button class="linkbtn" name="sales_status" value="closed">Cerrar ventas</button>{/if}
+											</form>
+										{/if}
+									</td>
 									<td>
 										<form method="POST" action="?/borrarFuncion" use:enhance><input type="hidden" name="id" value={p.id} /><button class="linkbtn danger" title="Eliminar">×</button></form>
 									</td>
@@ -104,6 +103,40 @@
 </div>
 
 <style>
+	.cta {
+		padding: 22px;
+		display: grid;
+		gap: 12px;
+		align-content: start;
+	}
+	.cta .btn {
+		width: fit-content;
+	}
+	.st {
+		font-size: 11px;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		padding: 3px 8px;
+		border: 1px solid var(--line);
+		white-space: nowrap;
+	}
+	.st.open {
+		background: var(--lime);
+		border-color: var(--lime);
+		color: #151412;
+	}
+	.st.closed,
+	.st.soldout {
+		background: var(--paper);
+		border-color: var(--paper);
+		color: #fff;
+	}
+	.acts {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+	}
 	.admin {
 		padding-top: 28px;
 		display: grid;

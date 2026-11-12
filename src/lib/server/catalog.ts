@@ -1,4 +1,5 @@
 import { all } from './db';
+import { saleState } from '#lib/sales.ts';
 import { sweepExpired } from './reservations';
 
 export type Show = {
@@ -8,6 +9,7 @@ export type Show = {
 export type PerfRow = {
 	id: number; show_id: number; starts_at: string; venue: string; address: string; maps_url: string;
 	price_usd: number; capacity: number; taken: number; layout?: string | null;
+	sales_status?: string | null; sales_close_minutes?: number | null;
 };
 
 export async function perfsFor(showId?: number): Promise<PerfRow[]> {
@@ -51,7 +53,7 @@ export async function catalog() {
 		.filter((p) => isFuture(p.starts_at))
 		.map((p) => {
 			const s = shows.find((x) => x.id === p.show_id)!;
-			return { ...p, title: s.title, slug: s.slug, variant: s.variant, poster: s.poster, genre: s.genre, left: p.capacity - p.taken, city: cityOf(p.venue) };
+			return { ...p, title: s.title, slug: s.slug, variant: s.variant, poster: s.poster, genre: s.genre, left: p.capacity - p.taken, city: cityOf(p.venue), state: saleState(p) };
 		});
 	const pastPerfs = perfs.filter((p) => !isFuture(p.starts_at));
 	const stats = {

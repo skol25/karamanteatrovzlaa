@@ -314,3 +314,33 @@ export async function seedTibisayMap(db: Client) {
 	}
 	await db.execute(`INSERT OR REPLACE INTO meta (k, v) VALUES ('tibisay_map_v1', '1')`);
 }
+
+/** Salas iniciales: el Hotel Tibisay con su plano de mesas, y las demás según las funciones cargadas */
+export async function seedVenues(db: Client) {
+	const done = await db.execute(`SELECT 1 FROM meta WHERE k='venues_seed_v1'`);
+	if (done.rows.length) return;
+	const perfs = await db.execute(`SELECT venue, address, maps_url, layout, capacity, price_usd FROM performances ORDER BY starts_at DESC`);
+	const seen = new Set<string>();
+	for (const p of perfs.rows) {
+		const full = String(p.venue);
+		if (seen.has(full)) continue;
+		seen.add(full);
+		const [name, city = ''] = full.split('·').map((x) => x.trim());
+		const isTibisay = /tibisay/i.test(full);
+		await db.execute({
+			sql: `INSERT INTO venues (name, city, address, maps_url, layout, capacity, price_usd, created_at) VALUES (?,?,?,?,?,?,?,?)`,
+			args: [
+				name,
+				city,
+				String(p.address ?? ''),
+				String(p.maps_url ?? ''),
+				isTibisay ? JSON.stringify(TEMPLATE_TIBISAY) : p.layout ?? null,
+				isTibisay ? 540 : Number(p.capacity),
+				isTibisay ? 20 : Number(p.price_usd),
+				Date.now()
+			]
+		});
+	}
+	await db.execute({ sql: `UPDATE performances SET venue_id=(SELECT v.id FROM venues v WHERE v.name || ' · ' || v.city = performances.venue OR v.name = performances.venue LIMIT 1)`, args: [] });
+	await db.execute(`INSERT OR REPLACE INTO meta (k, v) VALUES ('venues_seed_v1', '1')`);
+}

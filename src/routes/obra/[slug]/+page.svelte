@@ -13,7 +13,7 @@
 	let selectedId = $state<number | null>(null);
 	$effect.pre(() => {
 		if (selectedId == null) {
-			const pre = upcoming.find((p) => p.id === initial && p.left > 0) ?? upcoming.find((p) => p.left > 0);
+			const pre = upcoming.find((p) => p.id === initial && p.state === 'open') ?? upcoming.find((p) => p.state === 'open');
 			selectedId = pre?.id ?? null;
 		}
 	});
@@ -74,7 +74,7 @@
 							class:on={p.id === selectedId}
 							role="radio"
 							aria-checked={p.id === selectedId}
-							disabled={p.left <= 0}
+							disabled={p.state !== 'open'}
 							onclick={() => (selectedId = p.id)}
 						>
 							<span class="date">
@@ -85,7 +85,7 @@
 							<span class="pi">
 								<b>{hora(p.starts_at)}</b>
 								<span>{p.venue}</span>
-								<small class:few={p.left > 0 && p.left <= 10}>{p.left <= 0 ? 'Agotado' : `${p.left} de ${p.capacity} asientos disponibles`}</small>
+								<small class:few={p.state === 'open' && p.left <= 10} class:off={p.state !== 'open'}>{p.state === 'soldout' ? 'Agotado' : p.state === 'closed' ? 'Ventas cerradas' : `${p.left} de ${p.capacity} puestos disponibles`}</small>
 							</span>
 						</button>
 					{/each}
@@ -132,7 +132,7 @@
 						{/if}
 					</aside>
 				{:else}
-					<aside class="box card"><p class="muted">Todas las funciones están agotadas.</p></aside>
+					<aside class="box card"><p class="muted">{upcoming.every((p) => p.state === 'soldout') ? '¡Todas las funciones están agotadas!' : 'Las ventas de estas funciones están cerradas por ahora.'}</p></aside>
 				{/if}
 			</div>
 		{/if}
@@ -288,6 +288,10 @@
 	.pi small {
 		font-size: 12px;
 		color: var(--mist);
+	}
+	.pi small.off {
+		color: var(--danger);
+		font-weight: 700;
 	}
 	.pi small.few {
 		color: var(--warn);
