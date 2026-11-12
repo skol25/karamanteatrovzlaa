@@ -18,6 +18,7 @@ export type Video = {
 	id: number;
 	title: string;
 	caption: string;
+	description: string;
 	kind: VideoKind;
 	src: string;
 	mime: string | null;
@@ -32,6 +33,7 @@ export type PublicVideo = {
 	id: number;
 	title: string;
 	caption: string;
+	description: string;
 	kind: VideoKind;
 	/** archivo: /video/xxx.mp4 · youtube: id · instagram: código */
 	src: string;
@@ -128,21 +130,25 @@ export async function publicVideos(): Promise<PublicVideo[]> {
 		id: v.id,
 		title: v.title,
 		caption: v.caption,
+		description: v.description ?? '',
 		kind: v.kind,
 		src: v.kind === 'archivo' ? `/video/${v.src}` : v.src,
 		vertical: v.kind !== 'youtube' || v.mime === 'shorts',
-		cover: v.cover ? `/archivo/${v.cover}` : v.kind === 'youtube' ? `https://i.ytimg.com/vi/${v.src}/hqdefault.jpg` : null,
+		cover: v.cover ? coverUrl(v.cover) : v.kind === 'youtube' ? `https://i.ytimg.com/vi/${v.src}/hqdefault.jpg` : null,
 		show: v.show_slug ? { title: v.show_title!, slug: v.show_slug } : null
 	}));
 }
+
+/** Portada: subida desde el admin (tabla files) o imagen fija del sitio (empieza con /) */
+export const coverUrl = (c: string) => (c.startsWith('/') ? c : `/archivo/${c}`);
 
 export const getVideo = (id: number) => get<Video>('SELECT * FROM videos WHERE id=?', [id]);
 
 export async function createVideo(v: Omit<Video, 'id' | 'sort' | 'created_at' | 'enabled'>) {
 	const max = await get<{ s: number | null }>('SELECT MAX(sort) s FROM videos');
 	const { lastId } = await run(
-		`INSERT INTO videos (title, caption, kind, src, mime, bytes, cover, show_id, enabled, sort, created_at) VALUES (?,?,?,?,?,?,?,?,1,?,?)`,
-		[v.title, v.caption, v.kind, v.src, v.mime, v.bytes, v.cover, v.show_id, (max?.s ?? 0) + 1, Date.now()]
+		`INSERT INTO videos (title, caption, description, kind, src, mime, bytes, cover, show_id, enabled, sort, created_at) VALUES (?,?,?,?,?,?,?,?,?,1,?,?)`,
+		[v.title, v.caption, v.description ?? '', v.kind, v.src, v.mime, v.bytes, v.cover, v.show_id, (max?.s ?? 0) + 1, Date.now()]
 	);
 	return lastId;
 }
@@ -150,7 +156,7 @@ export async function createVideo(v: Omit<Video, 'id' | 'sort' | 'created_at' | 
 export async function removeVideo(v: Video) {
 	await run('DELETE FROM videos WHERE id=?', [v.id]);
 	if (v.kind === 'archivo') await fsp.rm(path.join(videoDir(), path.basename(v.src)), { force: true });
-	if (v.cover) await deleteFile(v.cover);
+	if (v.cover && !v.cover.startsWith('/')) await deleteFile(v.cover);
 }
 
 /** Mueve un video una posición arriba o abajo */

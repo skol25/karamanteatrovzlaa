@@ -70,7 +70,7 @@ export const actions = {
 			}
 			const cover = await saveCover(fd.get('cover'));
 			const showId = Number(v('show_id')) || null;
-			const id = await createVideo({ title, caption: v('caption'), kind, src, mime, bytes, cover, show_id: showId });
+			const id = await createVideo({ title, caption: v('caption'), description: v('description'), kind, src, mime, bytes, cover, show_id: showId });
 			await audit(event, {
 				kind: 'admin',
 				action: 'video_creado',
@@ -92,21 +92,23 @@ export const actions = {
 		if (!video) return fail(404, { error: 'El video no existe.' });
 		const title = v('title') || video.title;
 		const caption = v('caption');
+		const description = v('description');
 		const showId = Number(v('show_id')) || null;
 		let cover = video.cover;
 		try {
 			const nc = await saveCover(fd.get('cover'));
 			if (nc) {
-				if (video.cover) await deleteFile(video.cover);
+				if (video.cover && !video.cover.startsWith('/')) await deleteFile(video.cover);
 				cover = nc;
 			}
 		} catch (e) {
 			return fail(400, { error: (e as Error).message });
 		}
-		await run('UPDATE videos SET title=?, caption=?, show_id=?, cover=? WHERE id=?', [title, caption, showId, cover, video.id]);
+		await run('UPDATE videos SET title=?, caption=?, description=?, show_id=?, cover=? WHERE id=?', [title, caption, description, showId, cover, video.id]);
 		const changes: Record<string, { antes: unknown; ahora: unknown }> = {};
 		if (title !== video.title) changes.titulo = { antes: video.title, ahora: title };
 		if (caption !== (video.caption ?? '')) changes.descripcion = { antes: video.caption, ahora: caption };
+		if (description !== (video.description ?? '')) changes.texto = { antes: video.description, ahora: description };
 		if (showId !== video.show_id) changes.obra = { antes: video.show_id, ahora: showId };
 		if (cover !== video.cover) changes.portada = { antes: video.cover, ahora: cover };
 		await audit(event, {

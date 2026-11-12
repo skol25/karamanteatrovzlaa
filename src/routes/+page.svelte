@@ -1,10 +1,9 @@
 <script lang="ts">
 	import Poster from '#lib/components/Poster.svelte';
 	import VideoReel from '#lib/components/VideoReel.svelte';
-	import { bs, dia, mes, diaSemana, hora, fechaLarga } from '#lib/format.ts';
+	import { dia, mes, diaSemana, hora, fechaLarga } from '#lib/format.ts';
 
 	let { data } = $props();
-	const price = (usd: number | null) => (usd != null && data.rate ? bs(usd * data.rate.rate) : null);
 	const yearOf = (iso: string | null) => (iso ? new Date(iso).getFullYear() : '');
 	const cityOf = (venue: string) => (venue.split('·').at(-1) ?? venue).trim();
 
@@ -63,7 +62,6 @@
 					</p>
 					<div class="cta">
 						<a class="btn btn-lime" href="/obra/{m.slug}#funciones" tabindex={i === current ? 0 : -1}>Comprar entradas</a>
-						{#if price(m.minPrice)}<span class="from">Desde <b>{price(m.minPrice)}</b></span>{/if}
 					</div>
 				</div>
 				<a class="frame" href="/obra/{m.slug}" aria-label="Ver {m.title}" tabindex={i === current ? 0 : -1}>
@@ -117,7 +115,7 @@
 			<span class="price">
 				{#if p.left <= 0}<span class="sold">Agotado</span>
 				{:else if p.left <= 20}<span class="few">Últimas {p.left}</span>
-				{:else}{price(p.price_usd) ?? ''}{/if}
+				{:else}<span class="avail">Disponible</span>{/if}
 			</span>
 			<span class="go">{p.left <= 0 ? 'Detalle' : 'Entradas'} →</span>
 		</a>
@@ -253,15 +251,6 @@
 	}
 	.cta .btn {
 		padding: 17px 32px;
-	}
-	.from {
-		font-size: 14px;
-		color: var(--mist);
-	}
-	.from b {
-		color: var(--paper);
-		font-weight: 600;
-		font-size: 16px;
 	}
 	.frame {
 		padding: 12px;

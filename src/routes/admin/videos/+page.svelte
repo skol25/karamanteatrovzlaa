@@ -20,7 +20,7 @@
 	const mb = (b: number | null) => (b ? (b / 1048576).toFixed(1) + ' MB' : '');
 	const KIND = { archivo: 'Archivo', youtube: 'YouTube', instagram: 'Instagram' } as const;
 	const thumb = (v: (typeof data.videos)[number]) =>
-		v.cover ? `/archivo/${v.cover}` : v.kind === 'youtube' ? `https://i.ytimg.com/vi/${v.src}/hqdefault.jpg` : null;
+		v.cover ? (v.cover.startsWith('/') ? v.cover : `/archivo/${v.cover}`) : v.kind === 'youtube' ? `https://i.ytimg.com/vi/${v.src}/hqdefault.jpg` : null;
 
 	/** Toma un cuadro del video elegido para usarlo como portada */
 	function grabFrame(f: File) {
@@ -164,6 +164,7 @@
 				{/if}
 				<div class="field"><label for="title">Título</label><input class="input" id="title" name="title" required maxlength="80" placeholder="Así se vivió el estreno en Maturín" /></div>
 				<div class="field"><label for="caption">Descripción corta (opcional)</label><input class="input" id="caption" name="caption" maxlength="120" placeholder="Hotel Tibisay · junio 2026" /></div>
+				<div class="field wide"><label for="description">Texto que acompaña el video (opcional)</label><textarea class="input" id="description" name="description" rows="3" maxlength="1200" placeholder="Se muestra debajo del video al abrirlo"></textarea></div>
 				<div class="field">
 					<label for="show_id">Obra relacionada (opcional)</label>
 					<select class="input" id="show_id" name="show_id">
@@ -255,7 +256,8 @@
 					>
 						<input type="hidden" name="id" value={v.id} />
 						<div class="field"><label for="et{v.id}">Título</label><input class="input" id="et{v.id}" name="title" value={v.title} maxlength="80" /></div>
-						<div class="field"><label for="ec{v.id}">Descripción</label><input class="input" id="ec{v.id}" name="caption" value={v.caption} maxlength="120" /></div>
+						<div class="field"><label for="ec{v.id}">Descripción corta</label><input class="input" id="ec{v.id}" name="caption" value={v.caption} maxlength="120" /></div>
+						<div class="field"><label for="ed{v.id}">Texto</label><textarea class="input" id="ed{v.id}" name="description" rows="4" maxlength="1200">{v.description ?? ''}</textarea></div>
 						<div class="field">
 							<label for="es{v.id}">Obra</label>
 							<select class="input" id="es{v.id}" name="show_id">
@@ -346,8 +348,12 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 12px;
 	}
-	.fields .field:first-child {
+	.fields .field:first-child,
+	.fields .wide {
 		grid-column: 1 / -1;
+	}
+	textarea {
+		resize: vertical;
 	}
 	.preview {
 		display: grid;

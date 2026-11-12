@@ -1,7 +1,7 @@
 import { createClient, type Client, type InArgs, type InStatement, type Row } from '@libsql/client';
 import fs from 'node:fs';
 import { config } from './config';
-import { seed } from './seed';
+import { seed, seedVideos } from './seed';
 
 /**
  * Base de datos libSQL:
@@ -131,6 +131,7 @@ CREATE TABLE IF NOT EXISTS videos (
 	id INTEGER PRIMARY KEY,
 	title TEXT NOT NULL,
 	caption TEXT DEFAULT '',
+	description TEXT DEFAULT '',
 	kind TEXT NOT NULL,
 	src TEXT NOT NULL,
 	mime TEXT,
@@ -152,6 +153,10 @@ export function ready() {
 		await client.executeMultiple(SCHEMA);
 		const rs = await client.execute('SELECT COUNT(*) n FROM shows');
 		if (Number(rs.rows[0].n) === 0) await seed(client);
+		// migraciones pequeñas para bases ya creadas
+		const cols = (await client.execute('PRAGMA table_info(videos)')).rows.map((r) => String(r.name));
+		if (!cols.includes('description')) await client.execute("ALTER TABLE videos ADD COLUMN description TEXT DEFAULT ''");
+		await seedVideos(client);
 	})().catch((e) => {
 		readyPromise = null;
 		throw e;

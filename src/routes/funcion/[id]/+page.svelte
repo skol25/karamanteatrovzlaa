@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidate, replaceState } from '$app/navigation';
 	import { buildLayout, sortSeats } from '#lib/seats.ts';
-	import { bs, usd, fechaLarga, hora } from '#lib/format.ts';
+	import { fechaLarga, hora } from '#lib/format.ts';
 
 	let { data, form } = $props();
 	const p = $derived(data.perf);
@@ -41,7 +41,6 @@
 	}
 
 	const rate = $derived(data.rate?.rate ?? null);
-	const total = $derived(rate ? p.price_usd * picked.length * rate : null);
 	const ready = $derived(picked.length === n);
 </script>
 
@@ -119,8 +118,7 @@
 				</div>
 
 				<div class="sum">
-					<div><span>{picked.length} × {rate ? bs(p.price_usd * rate) : usd(p.price_usd)}</span><b>{total != null ? bs(total) : '—'}</b></div>
-					<small>Ref. {usd(p.price_usd * picked.length)}. Al continuar, tus asientos quedan apartados por {data.holdMinutes} minutos y se genera la cotización con la tasa BCV vigente.</small>
+					<small>Al continuar, tus asientos quedan apartados por {data.holdMinutes} minutos y se genera la cotización en bolívares con la tasa BCV vigente. Verás el monto a pagar en el siguiente paso.</small>
 				</div>
 
 				{#if form?.message}<p class="alert">{form.message}</p>{/if}
@@ -362,15 +360,6 @@
 		gap: 8px;
 		padding-top: 16px;
 		border-top: 1px solid var(--line);
-	}
-	.sum div {
-		display: flex;
-		justify-content: space-between;
-		font-size: 15px;
-	}
-	.sum b {
-		color: var(--accent);
-		font-size: 20px;
 	}
 	.sum small {
 		color: var(--mist);

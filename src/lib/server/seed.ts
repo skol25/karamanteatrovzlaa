@@ -172,3 +172,40 @@ export async function seed(db: Client) {
 	}
 	await db.batch(stmts, 'write');
 }
+
+/**
+ * Videos iniciales del carrusel (reels de @karamanteatrovzla). Se cargan una sola vez:
+ * si luego se borran desde el admin, no vuelven a aparecer.
+ */
+export async function seedVideos(db: Client) {
+	const done = await db.execute(`SELECT 1 FROM meta WHERE k='videos_seed_v1'`);
+	if (done.rows.length) return;
+	const videos = [
+		{
+			title: 'Rutaca Airlines presenta el avión de la Vinotinto',
+			caption: 'Un hangar convertido en teatro',
+			description:
+				'Parte de la gran labor que realizaron todos los trabajadores de Rutaca Airlines, un equipo lleno de entusiasmo, perseverancia y dedicación. ¡Felicitaciones, lo lograron! Tuve la gran oportunidad de estar en el evento, ya que se me encargó cubrir el hangar, y lo intervine con un diseño tipo teatro. Fue un día de lujo, una experiencia que nunca imaginé.',
+			src: 'reel/DHd51_rseCm',
+			cover: '/videos/rutaca-hangar.jpg'
+		},
+		{
+			title: 'Las Criadas, de Bogotá a París',
+			caption: 'Festival Internacional de Teatro de Bogotá · Teatro Essaïon',
+			description:
+				'Un paseíto por el Festival Internacional de Teatro de Bogotá con la tragicomedia Las Criadas, de Jean Genet: nueve países juntos y una hermandad inmediata. Dos semanas mágicas en las que te despertabas viendo teatro y te acostabas viendo teatro. Y en París, en el Teatro Essaïon, un teatro hermoso, una cueva mágica. El arte te da una libertad de expresión única, donde solo existen el compromiso, el sacrificio y el empuje hacia lo soñado. ¡Que viva el arte! Pronto, El marido de mi marido en modo internacional.',
+			src: 'reel/CyeXR7KuxNf',
+			cover: '/videos/las-criadas.jpg'
+		}
+	];
+	const now = Date.now();
+	for (const [i, v] of videos.entries()) {
+		const exists = await db.execute({ sql: 'SELECT 1 FROM videos WHERE src=?', args: [v.src] });
+		if (exists.rows.length) continue;
+		await db.execute({
+			sql: `INSERT INTO videos (title, caption, description, kind, src, cover, enabled, sort, created_at) VALUES (?,?,?,'instagram',?,?,1,?,?)`,
+			args: [v.title, v.caption, v.description, v.src, v.cover, i + 1, now]
+		});
+	}
+	await db.execute(`INSERT OR REPLACE INTO meta (k, v) VALUES ('videos_seed_v1', '1')`);
+}

@@ -85,9 +85,9 @@
 </section>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events -->
-<dialog bind:this={dialog} class="lightbox" onclose={() => (open = null)} onkeydown={key} onclick={(e) => e.target === dialog && close()} aria-label={cur?.title}>
+<dialog bind:this={dialog} class="lightbox" class:side={!!cur?.vertical} onclose={() => (open = null)} onkeydown={key} onclick={(e) => e.target === dialog && close()} aria-label={cur?.title}>
 	{#if cur}
-		<div class="stage" class:wide={!cur.vertical}>
+		<div class="stage" class:wide={!cur.vertical} class:ig={cur.kind === 'instagram'}>
 			{#key cur.id}
 				{#if cur.kind === 'archivo'}
 					<!-- svelte-ignore a11y_media_has_caption -->
@@ -100,7 +100,7 @@
 						allowfullscreen
 					></iframe>
 				{:else}
-					<iframe class="ig" src="https://www.instagram.com/{cur.src}/embed/" title={cur.title} allow="autoplay; encrypted-media" scrolling="no"></iframe>
+					<iframe class="ig" src="https://www.instagram.com/{cur.src}/embed/" title={cur.title} allow="autoplay; encrypted-media"></iframe>
 				{/if}
 			{/key}
 		</div>
@@ -108,6 +108,7 @@
 			<div>
 				<b>{cur.title}</b>
 				{#if cur.caption}<span>{cur.caption}</span>{/if}
+				{#if cur.description}<p class="desc">{cur.description}</p>{/if}
 			</div>
 			{#if cur.show}<a href="/obra/{cur.show.slug}" onclick={close}>Ver la obra →</a>{/if}
 		</div>
@@ -305,8 +306,35 @@
 		display: block;
 		background: #000;
 	}
+	.stage.ig {
+		aspect-ratio: auto;
+		width: min(92vw, 420px);
+		height: min(86vh, 820px);
+		background: #fff;
+	}
 	.stage iframe.ig {
 		background: #fff;
+	}
+	.desc {
+		margin: 10px 0 0;
+		font-size: 14px;
+		line-height: 1.65;
+		color: #f3f0eacc;
+		max-width: 60ch;
+	}
+	@media (min-width: 900px) {
+		.lightbox.side[open] {
+			grid-auto-flow: column;
+			align-items: center;
+			gap: 36px;
+		}
+		.lightbox.side .meta {
+			width: 340px;
+			flex-direction: column;
+			align-items: flex-start;
+			max-height: 80vh;
+			overflow: auto;
+		}
 	}
 	.meta {
 		width: min(92vw, 460px);
@@ -391,6 +419,14 @@
 			width: 100vw;
 			max-width: 100vw;
 			max-height: 76vh;
+		}
+		.stage.ig {
+			width: 100vw;
+			height: 72vh;
+		}
+		.meta {
+			max-height: 22vh;
+			overflow: auto;
 		}
 		.nav {
 			top: 18px;

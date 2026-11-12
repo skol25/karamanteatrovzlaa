@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Poster from '#lib/components/Poster.svelte';
-	import { bs, usd, dia, mes, diaSemana, hora, fechaLarga } from '#lib/format.ts';
+	import { dia, mes, diaSemana, hora, fechaLarga } from '#lib/format.ts';
 
 	let { data } = $props();
 	const s = $derived(data.show);
@@ -24,7 +24,6 @@
 	});
 
 	const rate = $derived(data.rate?.rate ?? null);
-	const unitBs = $derived(selected && rate ? selected.price_usd * rate : null);
 </script>
 
 <svelte:head>
@@ -87,7 +86,6 @@
 								<span>{p.venue}</span>
 								<small class:few={p.left > 0 && p.left <= 10}>{p.left <= 0 ? 'Agotado' : `${p.left} de ${p.capacity} asientos disponibles`}</small>
 							</span>
-							<span class="pp">{rate ? bs(p.price_usd * rate) : usd(p.price_usd)}</span>
 						</button>
 					{/each}
 				</div>
@@ -115,9 +113,7 @@
 						</div>
 
 						<div class="sum">
-							<div><span>Precio por entrada</span><span>{unitBs != null ? bs(unitBs) : '—'}</span></div>
-							<div class="total"><span>Total estimado</span><b>{unitBs != null ? bs(unitBs * qty) : '—'}</b></div>
-							<small>Ref. {usd(selected.price_usd * qty)} · Tasa BCV del día. El monto final se fija al reservar los asientos.</small>
+							<small>El monto en bolívares se calcula cuando apartas tus asientos, con la tasa BCV del momento. Esa cotización es válida por tiempo limitado.</small>
 						</div>
 
 						{#if rate}
@@ -287,10 +283,6 @@
 	.pi small.few {
 		color: var(--warn);
 	}
-	.pp {
-		font-weight: 800;
-		white-space: nowrap;
-	}
 	.box {
 		padding: 24px;
 		position: sticky;
@@ -370,17 +362,6 @@
 		gap: 8px;
 		font-size: 14px;
 	}
-	.sum div {
-		display: flex;
-		justify-content: space-between;
-		gap: 10px;
-	}
-	.sum .total {
-		font-size: 17px;
-	}
-	.sum .total b {
-		color: var(--accent);
-	}
 	.sum small {
 		color: var(--mist);
 		font-size: 12px;
@@ -416,10 +397,6 @@
 	@media (max-width: 520px) {
 		.perf {
 			flex-wrap: wrap;
-		}
-		.pp {
-			width: 100%;
-			text-align: right;
 		}
 	}
 </style>
