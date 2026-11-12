@@ -60,5 +60,8 @@ export async function catalog() {
 		cities: new Set(pastPerfs.map((p) => cityOf(p.venue))).size,
 		since: perfs[0] ? new Date(perfs[0].starts_at).getFullYear() : null
 	};
-	return { main, slides, current, past, upcomingPerfs, stats };
+	// lugares donde hemos presentado (para la sección de aliados)
+	const venues = [...new Set(perfs.map((p) => p.venue.split('·')[0].trim()))];
+	const allCities = [...new Set(perfs.map((p) => cityOf(p.venue)))];
+	return { main, slides, current, past, upcomingPerfs, stats: { ...stats, allPerformances: perfs.length, allCities: allCities.length }, venues, allCities };
 }

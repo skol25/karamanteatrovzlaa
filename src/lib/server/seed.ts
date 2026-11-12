@@ -209,3 +209,77 @@ export async function seedVideos(db: Client) {
 	}
 	await db.execute(`INSERT OR REPLACE INTO meta (k, v) VALUES ('videos_seed_v1', '1')`);
 }
+
+/** Segunda tanda de reels para llenar el carrusel, con el orden final de todos */
+export async function seedVideosV2(db: Client) {
+	const done = await db.execute(`SELECT 1 FROM meta WHERE k='videos_seed_v2'`);
+	if (done.rows.length) return;
+	const nuevos = [
+		{
+			title: 'Víctor Cámara y Henry Zakka llegan a Maturín',
+			caption: 'Protagonistas en un plano y contraplano',
+			description:
+				'Nos complace anunciar la llegada a Venezuela de dos grandes figuras de la actuación: Víctor Cámara y Henry Zakka, quienes se unen en escena para presentar la aclamada comedia teatral «Plano y contraplano», bajo la dirección de Juan Carlos Wessolossky.',
+			src: 'reel/DfUNzvkTPA_',
+			cover: '/afiches/protagonistas-plano-contraplano.jpg',
+			show: 'plano-y-contraplano'
+		},
+		{
+			title: 'Con Samir Bassi en el avión de la Vinotinto',
+			caption: 'Lanzamiento con Rutaca Airlines',
+			description:
+				'Y seguimos con Rutaca, en esta oportunidad con mi pana Samir Bassi, quien estuvo presente en el lanzamiento oficial del avión de la Vinotinto patrocinado por Rutaca Airlines. Un evento lleno de buenas energías. ¡Vamos Vinotinto!',
+			src: 'reel/DHognSmpOLt',
+			cover: '/videos/vinotinto-samir-bassi.jpg',
+			show: null
+		},
+		{
+			title: 'Génesis abre la presentación del avión',
+			caption: 'Rutaca Airlines · Volamos juntos por un sueño',
+			description:
+				'Una entrevista con Génesis, quien fue la encargada, junto a Turinese, de dar inicio a la presentación del avión oficial de la Vinotinto patrocinado por Rutaca Airlines. Volamos juntos por un sueño.',
+			src: 'reel/DHgI6BMRn3r',
+			cover: '/videos/vinotinto-genesis.jpg',
+			show: null
+		},
+		{
+			title: 'Kamasufra en Maturín',
+			caption: 'Hotel Tibisay',
+			description: 'La gran comedia teatral Kamasufra, original de Mercedes Salaya, en el Hotel Tibisay de Maturín. Una noche para venir en familia a divertirse.',
+			src: 'reel/DZxgIMcFfYC',
+			cover: '/afiches/kamasufra.jpg',
+			show: 'kamasufra'
+		},
+		{
+			title: 'Gracias, Puerto Ordaz',
+			caption: 'No eres tú, soy yo · Hotel Rosa Bela',
+			description: 'Gracias, Puerto Ordaz: una ciudad muy organizada y con una calidad humana enorme.',
+			src: 'reel/DNyCVM6QLKl',
+			cover: '/videos/no-eres-tu-rosa-bela.jpg',
+			show: 'no-eres-tu-soy-yo'
+		},
+		{
+			title: 'Yo no quiero reencarnar llega a Guatire',
+			caption: 'Gledys Ibarra · La Gran Churuata del Conejo',
+			description: 'La excelente pieza teatral «Yo no quiero reencarnar», con Gledys Ibarra, en la Gran Churuata del Conejo de Guatire.',
+			src: 'reel/DNQygLPRMW-',
+			cover: '/afiches/reencarnar.jpg',
+			show: 'yo-no-quiero-reencarnar'
+		}
+	];
+	const now = Date.now();
+	for (const v of nuevos) {
+		const exists = await db.execute({ sql: 'SELECT 1 FROM videos WHERE src=?', args: [v.src] });
+		if (exists.rows.length) continue;
+		await db.execute({
+			sql: `INSERT INTO videos (title, caption, description, kind, src, cover, show_id, enabled, sort, created_at)
+				  VALUES (?,?,?,'instagram',?,?,(SELECT id FROM shows WHERE slug=?),1,0,?)`,
+			args: [v.title, v.caption, v.description, v.src, v.cover, v.show, now]
+		});
+	}
+	// orden del carrusel
+	const orden = ['reel/DfUNzvkTPA_', 'reel/DHd51_rseCm', 'reel/DHognSmpOLt', 'reel/DHgI6BMRn3r', 'reel/CyeXR7KuxNf', 'reel/DZxgIMcFfYC', 'reel/DNyCVM6QLKl', 'reel/DNQygLPRMW-'];
+	for (const [i, src] of orden.entries()) await db.execute({ sql: 'UPDATE videos SET sort=? WHERE src=?', args: [i + 1, src] });
+	await db.execute({ sql: `UPDATE videos SET sort=sort+100 WHERE src NOT IN (${orden.map(() => '?').join(',')})`, args: orden });
+	await db.execute(`INSERT OR REPLACE INTO meta (k, v) VALUES ('videos_seed_v2', '1')`);
+}

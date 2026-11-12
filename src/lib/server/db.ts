@@ -1,7 +1,7 @@
 import { createClient, type Client, type InArgs, type InStatement, type Row } from '@libsql/client';
 import fs from 'node:fs';
 import { config } from './config';
-import { seed, seedVideos } from './seed';
+import { seed, seedVideos, seedVideosV2 } from './seed';
 
 /**
  * Base de datos libSQL:
@@ -157,6 +157,7 @@ export function ready() {
 		const cols = (await client.execute('PRAGMA table_info(videos)')).rows.map((r) => String(r.name));
 		if (!cols.includes('description')) await client.execute("ALTER TABLE videos ADD COLUMN description TEXT DEFAULT ''");
 		await seedVideos(client);
+		await seedVideosV2(client);
 	})().catch((e) => {
 		readyPromise = null;
 		throw e;
