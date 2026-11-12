@@ -51,9 +51,15 @@ export function allSeatIds(capacity: number): Set<string> {
 }
 
 export function sortSeats(seats: string[]) {
+	const key = (id: string): [number, number, string] => {
+		const m = id.match(/^M(\d+)-(\d+)$/);
+		if (m) return [+m[1], +m[2], ''];
+		const b = id.match(/^([A-Z]+)(\d+)$/);
+		return b ? [0, +b[2], b[1]] : [0, 0, id];
+	};
 	return [...seats].sort((a, b) => {
-		const ra = a.match(/^([A-Z]+)(\d+)$/)!,
-			rb = b.match(/^([A-Z]+)(\d+)$/)!;
-		return ra[1] === rb[1] ? +ra[2] - +rb[2] : ra[1].localeCompare(rb[1]);
+		const ka = key(a),
+			kb = key(b);
+		return ka[2].localeCompare(kb[2]) || ka[0] - kb[0] || ka[1] - kb[1];
 	});
 }

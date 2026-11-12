@@ -2,6 +2,7 @@ import QRCode from 'qrcode';
 import { config } from './config';
 import { esc, type Attachment } from './mail';
 import { bs, usd, rateFmt, fechaLarga, hora, fechaValor } from '#lib/format.ts';
+import { seatsSummary } from '#lib/seatmap.ts';
 
 /**
  * Plantillas de correo con la identidad de Karamantea (misma línea que la web:
@@ -31,6 +32,8 @@ export type MailRes = {
 	token: string;
 	qty: number;
 	seats: string[];
+	lines?: { zone: string | null; price: number; qty: number }[];
+	seatZones?: Record<string, string | null>;
 	total_bs: number;
 	total_usd: number;
 	unit_usd: number;
@@ -99,10 +102,15 @@ function showBlock(r: MailRes) {
 	</tr></table>`;
 }
 
+const linesText = (r: MailRes) =>
+	(r.lines?.length ? r.lines : [{ zone: null, price: r.unit_usd, qty: r.qty }])
+		.map((l) => `${l.qty} ${l.zone ? esc(l.zone) : l.qty > 1 ? 'entradas' : 'entrada'} × ${usd(l.price)}`)
+		.join('<br>');
+
 function summary(r: MailRes, paid = true) {
 	return rows([
-		['Asientos', `<b style="font-size:16px">${esc(r.seats.join(', '))}</b>`],
-		['Entradas', `${r.qty} × ${usd(r.unit_usd)}`],
+		['Puestos', `<b style="font-size:15px">${esc(seatsSummary(r.seats))}</b>`],
+		['Entradas', linesText(r)],
 		[paid ? 'Total pagado' : 'Total', `<b style="font-family:${SERIF};font-size:20px;font-weight:normal">${bs(r.total_bs)}</b>`],
 		['Tasa BCV', `${rateFmt(r.rate)} Bs/USD · fecha valor ${esc(fechaValor(r.rate_date))}`],
 		['Código de reserva', `<b>${resCode(r)}</b>`]
@@ -164,6 +172,15 @@ export function brandLayout(o: { preheader: string; tag: string; kicker: string;
 </body></html>`;
 }
 
+/** Bloque grande del puesto en la entrada: "Mesa 12 / Puesto 3 / VIP" o la butaca "C7" */
+function seatCell(seat: string, zone: string | null) {
+	const lab = (t: string) => `<p style="margin:0;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:${C.muted}">${t}</p>`;
+	const big = (t: string) => `<p style="margin:2px 0 8px;font-family:${SERIF};font-size:34px;line-height:1;color:${C.ink}">${t}</p>`;
+	const m = seat.match(/^M(\d+)-(\d+)$/);
+	const z = zone ? `<p style="margin:0;display:inline-block;background:${C.ink};color:${C.lime};font-size:11px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;padding:4px 8px">${esc(zone)}</p>` : '';
+	return m ? `${lab('Mesa')}${big(m[1])}${lab('Puesto')}${big(m[2])}${z}` : `${lab('Asiento')}${big(esc(seat))}${z}`;
+}
+
 // ---------------------------------------------------------------- correos
 
 /** Al admin: llegó un comprobante */
@@ -175,7 +192,8 @@ export function adminPaymentMail(r: MailRes) {
 		['Pagó a', esc(r.pay_method)],
 		['Banco de origen', esc(r.pay_bank)],
 		['Referencia', `<b style="font-size:16px">${esc(r.pay_ref)}</b>`],
-		['Asientos', `<b>${esc(r.seats.join(', '))}</b> (${r.qty})`],
+		['Puestos', `<b>${esc(seatsSummary(r.seats))}</b> (${r.qty})`],
+		['Detalle', linesText(r)],
 		['Tasa BCV', `${rateFmt(r.rate)} Bs/USD · ${esc(fechaValor(r.rate_date))}`]
 	])}
 	${sectionTitle('Comprador')}
@@ -249,10 +267,7 @@ export async function ticketsMail(r: MailRes) {
 		<tr>
 			<td style="padding:18px;vertical-align:top;font-family:${SANS}">
 				<table role="presentation" cellpadding="0" cellspacing="0"><tr>
-					<td style="padding-right:22px;vertical-align:top">
-						<p style="margin:0;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:${C.muted}">Asiento</p>
-						<p style="margin:2px 0 0;font-family:${SERIF};font-size:40px;line-height:1;color:${C.ink}">${esc(seat)}</p>
-					</td>
+					<td style="padding-right:22px;vertical-align:top">${seatCell(seat, r.seatZones?.[seat] ?? null)}</td>
 					<td style="vertical-align:top">
 						<p style="margin:0;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:${C.muted}">Fecha</p>
 						<p style="margin:2px 0 10px;font-size:14px;color:${C.ink};font-weight:bold">${esc(fechaLarga(p.starts_at))}</p>
@@ -283,7 +298,7 @@ export async function ticketsMail(r: MailRes) {
 	return {
 		subject: `Tus entradas · ${p.title} · ${fechaLarga(p.starts_at)}`,
 		html: brandLayout({
-			preheader: `${r.qty} entrada${r.qty > 1 ? 's' : ''} · asiento${r.qty > 1 ? 's' : ''} ${r.seats.join(', ')} · ${fechaLarga(p.starts_at)}, ${hora(p.starts_at)}`,
+			preheader: `${r.qty} entrada${r.qty > 1 ? 's' : ''} · ${seatsSummary(r.seats)} · ${fechaLarga(p.starts_at)}, ${hora(p.starts_at)}`,
 			tag: 'Tus entradas',
 			kicker: 'Pago verificado',
 			title: `¡Nos vemos en el teatro, ${firstName(r.buyer_name)}!`,

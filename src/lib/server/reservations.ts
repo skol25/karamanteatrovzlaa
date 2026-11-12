@@ -4,6 +4,7 @@ import { config } from './config';
 import { currentRate } from './bcv';
 import { saveFile, readFile, deleteFile } from './files';
 import { allSeatIds, sortSeats } from '#lib/seats.ts';
+import { parseMap, expandMap } from '#lib/seatmap.ts';
 import { sendMail } from './mail';
 import { bs, fechaCorta } from '#lib/format.ts';
 import { audit } from './audit';
@@ -19,6 +20,7 @@ export type Performance = {
 	maps_url: string;
 	price_usd: number;
 	capacity: number;
+	layout: string | null;
 };
 
 export type Reservation = {
@@ -121,6 +123,17 @@ export function getPerformance(id: number) {
 	);
 }
 
+/** Precio (USD) y zona de cada puesto de la función: plano por mesas o butacas a precio único */
+export function seatPricing(perf: Pick<Performance, 'layout' | 'capacity' | 'price_usd'>) {
+	const out = new Map<string, { price: number; zone: string | null }>();
+	const map = parseMap(perf.layout);
+	if (map) {
+		const ex = expandMap(map);
+		for (const [id, s] of Object.entries(ex.byId)) out.set(id, { price: s.zone.price, zone: s.zone.name });
+	} else for (const id of allSeatIds(perf.capacity)) out.set(id, { price: perf.price_usd, zone: null });
+	return out;
+}
+
 /** Asientos ocupados (apartados esperando pago, en revisión o confirmados) */
 export async function takenSeats(performanceId: number): Promise<string[]> {
 	await sweepExpired();
@@ -138,8 +151,8 @@ export async function holdSeats(performanceId: number, seats: string[]): Promise
 	if (unique.length === 0) throw new BookingError('Selecciona al menos un asiento.');
 	if (unique.length > config.maxTicketsPerOrder)
 		throw new BookingError(`Puedes comprar hasta ${config.maxTicketsPerOrder} entradas por compra.`);
-	const valid = allSeatIds(perf.capacity);
-	if (unique.some((s) => !valid.has(s))) throw new BookingError('Hay asientos que no existen en esta sala.');
+	const pricing = seatPricing(perf);
+	if (unique.some((s) => !pricing.has(s))) throw new BookingError('Hay asientos que no existen en esta sala.');
 
 	const rate = await currentRate();
 	if (!rate)
@@ -147,7 +160,8 @@ export async function holdSeats(performanceId: number, seats: string[]): Promise
 
 	const token = crypto.randomBytes(18).toString('base64url');
 	const now = Date.now();
-	const totalUsd = round2(perf.price_usd * unique.length);
+	const totalUsd = round2(unique.reduce((a, s) => a + pricing.get(s)!.price, 0));
+	const unitUsd = round2(totalUsd / unique.length);
 	const totalBs = round2(totalUsd * rate.rate);
 	const resId = `(SELECT id FROM reservations WHERE token=?)`;
 
@@ -157,11 +171,14 @@ export async function holdSeats(performanceId: number, seats: string[]): Promise
 			{
 				sql: `INSERT INTO reservations (token, performance_id, qty, status, rate_id, rate, rate_date, unit_usd, total_usd, total_bs, expires_at, created_at)
 					  VALUES (?,?,?, 'held', ?,?,?,?,?,?,?,?)`,
-				args: [token, perf.id, unique.length, rate.id, rate.rate, rate.valid_date, perf.price_usd, totalUsd, totalBs, now + config.holdMinutes * 60000, now]
+				args: [token, perf.id, unique.length, rate.id, rate.rate, rate.valid_date, unitUsd, totalUsd, totalBs, now + config.holdMinutes * 60000, now]
 			},
 			...unique.flatMap((s) => [
 				{ sql: `INSERT INTO reservation_seats (performance_id, seat, reservation_id) VALUES (?,?,${resId})`, args: [perf.id, s, token] },
-				{ sql: `INSERT INTO reservation_seat_log (reservation_id, seat) VALUES (${resId},?)`, args: [token, s] }
+				{
+					sql: `INSERT INTO reservation_seat_log (reservation_id, seat, price_usd, zone) VALUES (${resId},?,?,?)`,
+					args: [token, s, pricing.get(s)!.price, pricing.get(s)!.zone]
+				}
 			])
 		]);
 	} catch (e) {
@@ -181,8 +198,23 @@ export async function getReservation(token: string) {
 	await sweepExpired();
 	const r = await get<Reservation>('SELECT * FROM reservations WHERE token=?', [token]);
 	if (!r) return null;
-	const seats = sortSeats((await all<{ seat: string }>('SELECT seat FROM reservation_seat_log WHERE reservation_id=?', [r.id])).map((s) => s.seat));
-	return { ...r, seats, performance: (await getPerformance(r.performance_id))! };
+	const log = await all<{ seat: string; price_usd: number | null; zone: string | null }>(
+		'SELECT seat, price_usd, zone FROM reservation_seat_log WHERE reservation_id=?',
+		[r.id]
+	);
+	const seats = sortSeats(log.map((s) => s.seat));
+	// líneas de la cotización agrupadas por zona y precio ("2 × VIP · USD 35")
+	const groups = new Map<string, { zone: string | null; price: number; qty: number }>();
+	for (const s of log) {
+		const price = s.price_usd ?? r.unit_usd;
+		const k = `${s.zone ?? ''}|${price}`;
+		const g = groups.get(k) ?? { zone: s.zone, price, qty: 0 };
+		g.qty++;
+		groups.set(k, g);
+	}
+	const lines = [...groups.values()].sort((a, b) => b.price - a.price);
+	const seatZones = Object.fromEntries(log.map((s) => [s.seat, s.zone]));
+	return { ...r, seats, lines, seatZones, performance: (await getPerformance(r.performance_id))! };
 }
 
 export async function cancelHold(token: string) {

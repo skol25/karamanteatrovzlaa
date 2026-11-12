@@ -87,6 +87,7 @@
 									<td>{p.venue}</td>
 									<td>{usd(p.price_usd)}</td>
 									<td>{p.sold} vendidas · {p.taken}/{p.capacity} ocupados</td>
+									<td><a class="linkbtn" href="/admin/plano/{p.id}">{p.layout ? 'Plano de mesas' : 'Plano'}</a></td>
 									<td>
 										<form method="POST" action="?/borrarFuncion" use:enhance><input type="hidden" name="id" value={p.id} /><button class="linkbtn danger" title="Eliminar">×</button></form>
 									</td>

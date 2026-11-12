@@ -1,4 +1,5 @@
 import type { Client, InStatement } from '@libsql/client';
+import { TEMPLATE_TIBISAY, expandMap } from '#lib/seatmap.ts';
 
 /**
  * Cartelera inicial con las obras reales de Karamantea Group Producciones,
@@ -282,4 +283,34 @@ export async function seedVideosV2(db: Client) {
 	for (const [i, src] of orden.entries()) await db.execute({ sql: 'UPDATE videos SET sort=? WHERE src=?', args: [i + 1, src] });
 	await db.execute({ sql: `UPDATE videos SET sort=sort+100 WHERE src NOT IN (${orden.map(() => '?').join(',')})`, args: orden });
 	await db.execute(`INSERT OR REPLACE INTO meta (k, v) VALUES ('videos_seed_v2', '1')`);
+}
+
+/**
+ * Plano de mesas del Hotel Tibisay (VIP / Plata / General) para «Plano y contraplano».
+ * Solo se aplica una vez y si la función no tiene ventas reales (las reservas de PRUEBA se anulan).
+ */
+export async function seedTibisayMap(db: Client) {
+	const done = await db.execute(`SELECT 1 FROM meta WHERE k='tibisay_map_v1'`);
+	if (done.rows.length) return;
+	const perfs = await db.execute(
+		`SELECT p.id FROM performances p JOIN shows s ON s.id=p.show_id WHERE s.slug='plano-y-contraplano' AND p.layout IS NULL`
+	);
+	const ex = expandMap(TEMPLATE_TIBISAY);
+	for (const row of perfs.rows) {
+		const id = Number(row.id);
+		const real = await db.execute({
+			sql: `SELECT COUNT(*) n FROM reservations WHERE performance_id=? AND status IN ('submitted','confirmed') AND COALESCE(buyer_name,'') NOT LIKE '%PRUEBA%'`,
+			args: [id]
+		});
+		if (Number(real.rows[0].n) > 0) continue; // hay ventas reales: se deja para el admin
+		await db.batch(
+			[
+				{ sql: `UPDATE reservations SET status='expired', expire_reason='cambio de plano' WHERE performance_id=? AND status IN ('held','submitted','confirmed')`, args: [id] },
+				{ sql: `DELETE FROM reservation_seats WHERE performance_id=?`, args: [id] },
+				{ sql: `UPDATE performances SET layout=?, capacity=?, price_usd=? WHERE id=?`, args: [JSON.stringify(TEMPLATE_TIBISAY), ex.capacity, 20, id] }
+			],
+			'write'
+		);
+	}
+	await db.execute(`INSERT OR REPLACE INTO meta (k, v) VALUES ('tibisay_map_v1', '1')`);
 }

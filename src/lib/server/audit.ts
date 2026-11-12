@@ -82,6 +82,7 @@ export const ACTIONS: Record<string, string> = {
 	obra_principal: 'Obra principal',
 	funcion_creada: 'Función creada',
 	funcion_borrada: 'Función eliminada',
+	plano_editado: 'Plano de asientos',
 	metodo_creado: 'Método de pago creado',
 	metodo_editado: 'Método de pago editado',
 	metodo_activado: 'Método de pago activado',

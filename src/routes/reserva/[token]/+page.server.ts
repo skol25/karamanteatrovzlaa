@@ -15,6 +15,7 @@ export const load = async ({ params, depends }) => {
 			expire_reason: r.expire_reason,
 			qty: r.qty,
 			seats: r.seats,
+			lines: r.lines,
 			rate: r.rate,
 			rate_date: r.rate_date,
 			unit_usd: r.unit_usd,

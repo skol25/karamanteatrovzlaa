@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { seatLabel, seatsSummary } from '#lib/seatmap.ts';
 	import { enhance } from '$app/forms';
 	import { invalidate } from '$app/navigation';
 	import { bs, usd, rateFmt, fechaLarga, hora, fechaValor, fechaHora } from '#lib/format.ts';
@@ -125,11 +126,14 @@
 				<h2>{p.title}</h2>
 				<p class="qwhen">{fechaLarga(p.starts_at)} · {hora(p.starts_at)}<br />{p.venue}</p>
 				<div class="seats">
-					{#each r.seats as s (s)}<span>{s}</span>{/each}
+					{#each r.seats as s (s)}<span>{seatLabel(s)}</span>{/each}
 				</div>
 				<div class="perfor"></div>
 				<dl class="lines">
-					<div><dt>{r.qty} entrada{r.qty > 1 ? 's' : ''} × {usd(r.unit_usd)}</dt><dd>{usd(r.total_usd)}</dd></div>
+					{#each r.lines as l (l.zone + '|' + l.price)}
+						<div><dt>{l.qty} {l.zone ? l.zone : l.qty > 1 ? 'entradas' : 'entrada'} × {usd(l.price)}</dt><dd>{usd(l.qty * l.price)}</dd></div>
+					{/each}
+					{#if r.lines.length > 1}<div><dt>Total</dt><dd>{usd(r.total_usd)}</dd></div>{/if}
 					<div><dt>Tasa oficial BCV</dt><dd>{rateFmt(r.rate)} Bs/USD</dd></div>
 					<div class="fv"><dt>Fecha valor</dt><dd>{fechaValor(r.rate_date)}</dd></div>
 				</dl>
@@ -337,7 +341,7 @@
 			<div class="mini">
 				<b>{p.title}</b>
 				<span>{fechaLarga(p.starts_at)} · {hora(p.starts_at)} · {p.venue}</span>
-				<span>Asientos {r.seats.join(', ')} · {bs(r.total_bs)}</span>
+				<span>{seatsSummary(r.seats)} · {bs(r.total_bs)}</span>
 			</div>
 			<a class="lnk" href="/">Volver a la cartelera</a>
 		</section>

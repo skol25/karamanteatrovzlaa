@@ -33,7 +33,7 @@ export const config = {
 		(env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + env.VERCEL_PROJECT_PRODUCTION_URL : 'http://localhost:5173')
 	).replace(/\/$/, ''),
 	holdMinutes: Number(env.HOLD_MINUTES || 20),
-	maxTicketsPerOrder: Number(env.MAX_TICKETS || 10),
+	maxTicketsPerOrder: Number(env.MAX_TICKETS || 20),
 	/** días máximos de antigüedad de la tasa vigente (fin de semana / feriados) */
 	maxRateAgeDays: Number(env.MAX_RATE_AGE_DAYS || 4),
 	bcvRefreshMinutes: Number(env.BCV_REFRESH_MINUTES || 30),

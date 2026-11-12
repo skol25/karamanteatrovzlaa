@@ -3,6 +3,8 @@
 	import { invalidate, replaceState } from '$app/navigation';
 	import { buildLayout, sortSeats } from '#lib/seats.ts';
 	import { fechaLarga, hora } from '#lib/format.ts';
+	import MesaMap from '#lib/components/MesaMap.svelte';
+	import { seatLabel } from '#lib/seatmap.ts';
 
 	let { data, form } = $props();
 	const p = $derived(data.perf);
@@ -40,8 +42,71 @@
 		replaceState(u, {});
 	}
 
+	// ---- Plano por mesas: el cliente elige puestos sueltos o la mesa completa
+	let limitMsg = $state('');
+	const max = $derived(Math.min(data.maxTickets, data.left));
+	function toggleMesa(id: string) {
+		limitMsg = '';
+		if (picked.includes(id)) picked = picked.filter((s) => s !== id);
+		else if (picked.length < max) picked = [...picked, id];
+		else limitMsg = `Puedes elegir hasta ${max} puestos por compra.`;
+	}
+	// Aviso al elegir o quitar una mesa completa
+	let toast = $state<{ kind: 'ok' | 'off' | 'warn'; text: string } | null>(null);
+	let toastTimer: ReturnType<typeof setTimeout> | undefined;
+	function notify(kind: 'ok' | 'off' | 'warn', text: string) {
+		toast = { kind, text };
+		clearTimeout(toastTimer);
+		toastTimer = setTimeout(() => (toast = null), 3500);
+	}
+
+	function pickTable(ids: string[]) {
+		limitMsg = '';
+		if (!ids.length) return;
+		const mesa = ids[0].match(/^M(\d+)-/)?.[1] ?? '';
+		const zone = data.map?.byId[ids[0]]?.zone.name ?? '';
+		if (ids.every((s) => picked.includes(s))) {
+			picked = picked.filter((s) => !ids.includes(s));
+			notify('off', `Quitaste la mesa ${mesa} de tu selección.`);
+			return;
+		}
+		const add = ids.filter((s) => !picked.includes(s));
+		const room = max - picked.length;
+		const taken_ = add.slice(0, Math.max(0, room));
+		picked = [...picked, ...taken_];
+		if (add.length > room) {
+			limitMsg = `Puedes elegir hasta ${max} puestos por compra.`;
+			notify('warn', taken_.length ? `Solo se agregaron ${taken_.length} puestos de la mesa ${mesa}: el máximo por compra es ${max}.` : `Ya tienes ${max} puestos, el máximo por compra.`);
+		} else {
+			const total = data.map?.rows.flatMap((r) => r.tables).find((t) => String(t.n) === mesa)?.seats.length ?? ids.length;
+			notify(
+				'ok',
+				ids.length === total
+					? `Elegiste la mesa ${mesa} completa (${zone}): ${ids.length} puestos.`
+					: `Elegiste los ${ids.length} puestos libres de la mesa ${mesa} (${zone}).`
+			);
+		}
+	}
+
+	// zonas con sus filas y mesas (para las pestañas y el resumen)
+	const zoneInfo = $derived.by(() => {
+		if (!data.map) return [];
+		return data.map.zones
+			.map((z) => {
+				const rows = data.map!.rows.filter((r) => r.zone.id === z.id);
+				const idx = rows.map((r) => r.index + 1);
+				const tables = rows.flatMap((r) => r.tables.map((t) => t.n));
+				return {
+					z,
+					filas: idx.length > 1 ? `filas ${idx[0]} a ${idx.at(-1)}` : `fila ${idx[0]}`,
+					mesas: tables.length ? `mesas ${tables[0]}–${tables.at(-1)}` : ''
+				};
+			})
+			.filter((x) => x.mesas);
+	});
+
 	const rate = $derived(data.rate?.rate ?? null);
-	const ready = $derived(picked.length === n);
+	const ready = $derived(data.map ? picked.length > 0 : picked.length === n);
 </script>
 
 <svelte:head><title>Asientos · {p.title} · Karamantea Teatro</title></svelte:head>
@@ -49,7 +114,7 @@
 <div class="wrap page">
 	<a class="back" href="/obra/{p.slug}#funciones">← {p.title}</a>
 	<span class="eyebrow">Paso 2 de 3</span>
-	<h1 class="display">Elige tus asientos</h1>
+	<h1 class="display">{data.map ? 'Elige tus puestos' : 'Elige tus asientos'}</h1>
 	<p class="sub">{fechaLarga(p.starts_at)} · {hora(p.starts_at)} · {p.venue}</p>
 
 	{#if data.past}
@@ -57,8 +122,24 @@
 	{:else if data.left <= 0}
 		<p class="alert">Función agotada.</p>
 	{:else}
-		<div class="grid">
+		<div class="grid" class:mesas={!!data.map}>
 			<section class="hall card">
+				{#if data.map}
+					<div class="ztabs">
+						{#each zoneInfo as zi (zi.z.id)}
+							<span class="ztab"><i style="background:{zi.z.color}"></i><b>{zi.z.name}</b> · {zi.filas} · {zi.mesas}</span>
+						{/each}
+					</div>
+					<p class="howto">Toca una silla para elegir ese puesto, o toca el número de la mesa para elegir la mesa completa.</p>
+					<MesaMap map={data.map} {taken} {picked} ontoggle={toggleMesa} ontable={pickTable} />
+					{#if toast}
+						<div class="toast {toast.kind}" role="status" aria-live="polite">
+							<span>{toast.kind === 'ok' ? '✓' : toast.kind === 'off' ? '−' : '!'}</span>
+							{toast.text}
+							<button type="button" onclick={() => (toast = null)} aria-label="Cerrar aviso">×</button>
+						</div>
+					{/if}
+				{:else}
 				<div class="stage"><span>Escenario</span></div>
 				<div class="map" style="--cols:{layout.width}">
 					{#each layout.rows as row (row.label)}
@@ -91,9 +172,31 @@
 					<span><i class="seat sm picked"></i>Tu selección</span>
 					<span><i class="seat sm taken"></i>Ocupado</span>
 				</div>
+				{/if}
 			</section>
 
 			<aside class="side card">
+				{#if data.map}
+					<div class="zlist">
+						<h3>Zonas</h3>
+						{#each zoneInfo as zi (zi.z.id)}
+							<div class="zrow"><span><i style="background:{zi.z.color}"></i>{zi.z.name}</span><small>{zi.filas.replace('filas', 'Filas').replace('fila', 'Fila')}</small></div>
+						{/each}
+					</div>
+					<div class="picked-list">
+						<h3>Tus puestos ({picked.length})</h3>
+						<div class="mlist">
+							{#each [...picked].sort((a, b) => (a < b ? -1 : 1)) as s (s)}
+								<button class="mtag" onclick={() => toggleMesa(s)} aria-label="Quitar {seatLabel(s)}">
+									<span>{seatLabel(s)}</span><small>{data.map.byId[s]?.zone.name}</small><b>×</b>
+								</button>
+							{:else}
+								<span class="hint">Elige tus puestos en el plano.</span>
+							{/each}
+						</div>
+						{#if limitMsg}<p class="lim">{limitMsg}</p>{/if}
+					</div>
+				{:else}
 				<div class="qty">
 					<span>Entradas</span>
 					<div class="stepper">
@@ -116,6 +219,7 @@
 						{/each}
 					</div>
 				</div>
+				{/if}
 
 				<div class="sum">
 					<small>Al continuar, tus asientos quedan apartados por {data.holdMinutes} minutos y se genera la cotización en bolívares con la tasa BCV vigente. Verás el monto a pagar en el siguiente paso.</small>
@@ -135,7 +239,15 @@
 				>
 					<input type="hidden" name="seats" value={picked.join(',')} />
 					<button class="btn btn-lime full" disabled={!ready || !rate || sending}>
-						{sending ? 'Apartando asientos…' : ready ? 'Continuar al pago' : `Elige ${n - picked.length} asiento${n - picked.length === 1 ? '' : 's'} más`}
+						{sending
+							? 'Apartando asientos…'
+							: data.map
+								? picked.length
+									? `Continuar con ${picked.length} puesto${picked.length === 1 ? '' : 's'}`
+									: 'Elige tus puestos'
+								: ready
+									? 'Continuar al pago'
+									: `Elige ${n - picked.length} asiento${n - picked.length === 1 ? '' : 's'} más`}
 					</button>
 				</form>
 			</aside>
@@ -378,9 +490,196 @@
 		margin: 0;
 		font-size: 14px;
 	}
+	.grid.mesas {
+		grid-template-columns: minmax(0, 1fr) 340px;
+	}
+	.ztabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		margin-bottom: 12px;
+	}
+	.ztab {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		border: 1px solid var(--line);
+		background: var(--ink);
+		padding: 8px 14px;
+		font-size: 13px;
+		color: var(--mist);
+	}
+	.ztab b {
+		color: var(--paper);
+	}
+	.ztab i,
+	.zrow i {
+		width: 11px;
+		height: 11px;
+		border-radius: 50%;
+		display: inline-block;
+	}
+	.side h3 {
+		margin: 0;
+		font-size: 15px;
+	}
+	.zlist {
+		display: grid;
+	}
+	.zrow {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 11px 0;
+		border-bottom: 1px solid var(--line);
+		font-size: 14px;
+	}
+	.zrow:last-child {
+		border-bottom: 0;
+	}
+	.zrow span {
+		display: flex;
+		align-items: center;
+		gap: 9px;
+	}
+	.zrow small {
+		color: var(--mist);
+		font-size: 12px;
+	}
+	.toast {
+		position: fixed;
+		left: 50%;
+		top: 92px;
+		translate: -50% 0;
+		z-index: 30;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		background: var(--paper);
+		color: #fff;
+		padding: 13px 16px;
+		font-size: 14px;
+		font-weight: 600;
+		box-shadow: 0 14px 40px #0004;
+		max-width: min(92vw, 520px);
+		animation: tin 0.25s ease;
+	}
+	.toast span {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		display: grid;
+		place-items: center;
+		background: var(--lime);
+		color: var(--paper);
+		font-weight: 800;
+		flex: none;
+	}
+	.toast.off span {
+		background: #ffffff33;
+		color: #fff;
+	}
+	.toast.warn span {
+		background: #e9a23b;
+	}
+	.toast button {
+		background: none;
+		border: 0;
+		color: #ffffff99;
+		font-size: 18px;
+		cursor: pointer;
+		margin-left: 4px;
+	}
+	@keyframes tin {
+		from {
+			opacity: 0;
+			translate: -50% -8px;
+		}
+	}
+	.howto {
+		margin: 0 0 14px;
+		font-size: 14px;
+		color: var(--mist);
+		text-align: center;
+	}
+	.mlist {
+		display: grid;
+		gap: 8px;
+		margin-top: 12px;
+		max-height: 300px;
+		overflow: auto;
+	}
+	.mtag {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		border: 1px solid var(--lime);
+		background: var(--lime-soft);
+		padding: 5px 9px;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+		color: var(--paper);
+	}
+	.mtag {
+		justify-content: space-between;
+		padding: 10px 12px;
+		font-size: 14px;
+		text-align: left;
+	}
+	.mtag span {
+		flex: 1;
+	}
+	.mtag small {
+		color: var(--mist);
+		font-weight: 600;
+		font-size: 12px;
+	}
+	.mtag b {
+		opacity: 0.5;
+	}
+	.lim {
+		margin: 8px 0 0;
+		color: var(--warn);
+		font-size: 13px;
+	}
 	@media (max-width: 960px) {
+		.grid.mesas {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.grid.mesas .side {
+			position: sticky;
+			bottom: 0;
+			top: auto;
+			z-index: 5;
+			grid-template-columns: minmax(0, 1fr);
+			padding: 12px 14px;
+			gap: 8px;
+			box-shadow: 0 -10px 30px #1514121a;
+		}
+		.grid.mesas .zlist {
+			display: none;
+		}
+		.grid.mesas .mlist {
+			display: flex;
+		}
+		.grid.mesas .sum {
+			display: none;
+		}
+		.grid.mesas .mlist {
+			flex-wrap: nowrap;
+			overflow-x: auto;
+			max-height: none;
+			margin-top: 6px;
+			padding-bottom: 2px;
+		}
+		.grid.mesas .mtag {
+			flex: none;
+			font-size: 12px;
+			padding: 4px 8px;
+		}
 		.grid {
-			grid-template-columns: 1fr;
+			grid-template-columns: minmax(0, 1fr);
 		}
 		.side {
 			position: static;

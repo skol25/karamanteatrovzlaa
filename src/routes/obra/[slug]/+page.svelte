@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import Poster from '#lib/components/Poster.svelte';
 	import { dia, mes, diaSemana, hora, fechaLarga } from '#lib/format.ts';
+	import { parseMap } from '#lib/seatmap.ts';
 
 	let { data } = $props();
 	const s = $derived(data.show);
@@ -103,6 +104,13 @@
 							</div>
 						</div>
 
+						{#if selected.layout}
+							{@const zs = parseMap(selected.layout)?.zones ?? []}
+							<div class="zones">
+								<span>Mesas de {zs.map((z) => z.name).join(', ')}</span>
+								<small>Puedes elegir puestos sueltos o la mesa completa.</small>
+							</div>
+						{:else}
 						<div class="qty">
 							<span>Entradas</span>
 							<div class="stepper">
@@ -111,13 +119,14 @@
 								<button onclick={() => (qty = Math.min(maxQty, qty + 1))} disabled={qty >= maxQty} aria-label="Más">+</button>
 							</div>
 						</div>
+						{/if}
 
 						<div class="sum">
 							<small>El monto en bolívares se calcula cuando apartas tus asientos, con la tasa BCV del momento. Esa cotización es válida por tiempo limitado.</small>
 						</div>
 
 						{#if rate}
-							<a class="btn btn-lime full" href="/funcion/{selected.id}?n={qty}">Elegir asientos</a>
+							<a class="btn btn-lime full" href="/funcion/{selected.id}?n={qty}">{selected.layout ? 'Elegir puestos' : 'Elegir asientos'}</a>
 						{:else}
 							<p class="warn">Aún no está disponible la tasa BCV de hoy. La venta se habilitará en unos minutos.</p>
 						{/if}
@@ -317,6 +326,18 @@
 	.lnk {
 		color: var(--accent);
 		font-weight: 700;
+		font-size: 13px;
+	}
+	.zones {
+		display: grid;
+		gap: 4px;
+		padding: 14px 0;
+		border-block: 1px solid var(--line);
+		font-weight: 700;
+	}
+	.zones small {
+		font-weight: 400;
+		color: var(--mist);
 		font-size: 13px;
 	}
 	.qty {

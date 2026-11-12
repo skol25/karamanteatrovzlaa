@@ -1,7 +1,7 @@
 import { createClient, type Client, type InArgs, type InStatement, type Row } from '@libsql/client';
 import fs from 'node:fs';
 import { config } from './config';
-import { seed, seedVideos, seedVideosV2 } from './seed';
+import { seed, seedVideos, seedVideosV2, seedTibisayMap } from './seed';
 
 /**
  * Base de datos libSQL:
@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS performances (
 	address TEXT DEFAULT '',
 	maps_url TEXT DEFAULT '',
 	price_usd REAL NOT NULL,
-	capacity INTEGER NOT NULL
+	capacity INTEGER NOT NULL,
+	layout TEXT
 );
 CREATE TABLE IF NOT EXISTS rates (
 	id INTEGER PRIMARY KEY,
@@ -80,7 +81,9 @@ CREATE TABLE IF NOT EXISTS reservation_seats (
 );
 CREATE TABLE IF NOT EXISTS reservation_seat_log (
 	reservation_id INTEGER NOT NULL,
-	seat TEXT NOT NULL
+	seat TEXT NOT NULL,
+	price_usd REAL,
+	zone TEXT
 );
 -- Archivos (comprobantes y afiches) guardados en la propia base: funciona igual en Vercel y en Namecheap
 CREATE TABLE IF NOT EXISTS files (
@@ -156,8 +159,14 @@ export function ready() {
 		// migraciones pequeñas para bases ya creadas
 		const cols = (await client.execute('PRAGMA table_info(videos)')).rows.map((r) => String(r.name));
 		if (!cols.includes('description')) await client.execute("ALTER TABLE videos ADD COLUMN description TEXT DEFAULT ''");
+		const pcols = (await client.execute('PRAGMA table_info(performances)')).rows.map((r) => String(r.name));
+		if (!pcols.includes('layout')) await client.execute('ALTER TABLE performances ADD COLUMN layout TEXT');
+		const lcols = (await client.execute('PRAGMA table_info(reservation_seat_log)')).rows.map((r) => String(r.name));
+		if (!lcols.includes('price_usd')) await client.execute('ALTER TABLE reservation_seat_log ADD COLUMN price_usd REAL');
+		if (!lcols.includes('zone')) await client.execute('ALTER TABLE reservation_seat_log ADD COLUMN zone TEXT');
 		await seedVideos(client);
 		await seedVideosV2(client);
+		await seedTibisayMap(client);
 	})().catch((e) => {
 		readyPromise = null;
 		throw e;

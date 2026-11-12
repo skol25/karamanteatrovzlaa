@@ -3,6 +3,7 @@ import { getPerformance, takenSeats, holdSeats, describeReservation, BookingErro
 import { audit } from '#lib/server/audit.ts';
 import { get } from '#lib/server/db.ts';
 import { config } from '#lib/server/config.ts';
+import { parseMap, expandMap } from '#lib/seatmap.ts';
 
 export const load = async ({ params, url, depends }) => {
 	depends('app:seats');
@@ -12,7 +13,8 @@ export const load = async ({ params, url, depends }) => {
 	const taken = await takenSeats(perf.id);
 	const left = perf.capacity - taken.length;
 	const n = Math.max(1, Math.min(Number(url.searchParams.get('n')) || 1, config.maxTicketsPerOrder, Math.max(left, 1)));
-	return { perf, taken, past, left, n, maxTickets: config.maxTicketsPerOrder, holdMinutes: config.holdMinutes };
+	const sm = parseMap(perf.layout);
+	return { perf, taken, past, left, n, maxTickets: config.maxTicketsPerOrder, holdMinutes: config.holdMinutes, map: sm ? expandMap(sm) : null };
 };
 
 export const actions = {

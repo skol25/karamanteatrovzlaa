@@ -7,7 +7,7 @@ export type Show = {
 };
 export type PerfRow = {
 	id: number; show_id: number; starts_at: string; venue: string; address: string; maps_url: string;
-	price_usd: number; capacity: number; taken: number;
+	price_usd: number; capacity: number; taken: number; layout?: string | null;
 };
 
 export async function perfsFor(showId?: number): Promise<PerfRow[]> {
