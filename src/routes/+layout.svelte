@@ -14,19 +14,20 @@
 
 <header class="top">
 	<div class="wrap bar">
-		<a href="/" class="brand" aria-label="Karamantea Teatro, inicio">
-			<img src="/logo.png" alt="" width="44" height="44" />
-			<span class="name"><span class="display">Karamantea</span><small>Teatro</small></span>
-		</a>
 		<nav class:open>
 			{#if !isAdmin}
-				<a href="/#funciones" onclick={() => (open = false)}>Próximos eventos</a>
+				<a href="/#funciones" onclick={() => (open = false)}>Cartelera</a>
 				<a href="/#trayectoria" onclick={() => (open = false)}>Trayectoria</a>
-				<a href="https://wa.me/584249392784" target="_blank" rel="noopener" onclick={() => (open = false)}>Contacto</a>
+				<a class="only-m" href="https://wa.me/584249392784" target="_blank" rel="noopener" onclick={() => (open = false)}>Contacto</a>
 			{:else}
 				<a href="/">Ver sitio</a>
 			{/if}
 		</nav>
+		<a href="/" class="brand" aria-label="Karamantea Teatro, inicio">
+			<img src="/logo.png" alt="" width="40" height="40" />
+			<span class="name">Karamantea</span>
+		</a>
+		<a class="contact" href="https://wa.me/584249392784" target="_blank" rel="noopener">Contacto</a>
 		<button class="burger" onclick={() => (open = !open)} aria-label="Menú" aria-expanded={open}>
 			<span></span><span></span>
 		</button>
@@ -71,7 +72,7 @@
 		align-items: center;
 		gap: 8px;
 		flex-wrap: wrap;
-		background: #141414;
+		background: var(--ink-3);
 		border-bottom: 1px solid var(--line);
 		color: var(--mist);
 		text-align: center;
@@ -91,47 +92,55 @@
 		z-index: 50;
 		background: color-mix(in srgb, var(--ink) 82%, transparent);
 		backdrop-filter: blur(14px);
-		border-bottom: 1px solid #ffffff0d;
+		border-bottom: 1px solid var(--line);
 	}
 	.bar {
-		display: flex;
+		display: grid;
+		grid-template-columns: 1fr auto 1fr;
 		align-items: center;
 		gap: 28px;
-		height: 72px;
+		height: 76px;
 	}
 	.brand {
 		display: flex;
 		align-items: center;
 		gap: 12px;
+		justify-self: center;
 	}
 	.name {
-		display: grid;
-		line-height: 1.1;
-	}
-	.name .display {
 		font-family: var(--display);
-		font-weight: 400;
-		text-transform: uppercase;
-		font-size: 14px;
-		letter-spacing: 0.22em;
-	}
-	.name small {
-		font-size: 10px;
-		letter-spacing: 0.5em;
-		color: var(--lime);
-		text-transform: uppercase;
-		font-weight: 700;
+		font-size: 24px;
+		letter-spacing: 0.01em;
 	}
 	nav {
 		display: flex;
-		gap: 26px;
-		margin-left: auto;
-		font-size: 14px;
+		gap: 30px;
+		font-size: 12px;
 		font-weight: 600;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
 		color: var(--mist);
 	}
-	nav a:hover {
-		color: var(--lime);
+	nav a:hover,
+	.contact:hover {
+		color: var(--paper);
+	}
+	.only-m {
+		display: none;
+	}
+	.contact {
+		justify-self: end;
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		border: 1px solid var(--paper);
+		padding: 10px 18px;
+		border-radius: 2px;
+	}
+	.contact:hover {
+		background: var(--paper);
+		color: var(--ink);
 	}
 	.dot {
 		width: 7px;
@@ -191,7 +200,7 @@
 		font-weight: 700;
 	}
 	.ig:hover {
-		color: var(--lime);
+		color: var(--accent);
 	}
 	.legal p {
 		color: var(--mist);
@@ -203,11 +212,20 @@
 	}
 	@media (max-width: 860px) {
 		.bar {
+			display: flex;
 			gap: 12px;
+		}
+		.contact {
+			display: none;
+		}
+		.only-m {
+			display: block;
+		}
+		.brand {
+			margin-right: auto;
 		}
 		.burger {
 			display: flex;
-			margin-left: auto;
 		}
 		nav {
 			display: none;
@@ -230,9 +248,6 @@
 		}
 		.fgrid {
 			grid-template-columns: 1fr;
-		}
-		.name {
-			display: none;
 		}
 	}
 </style>

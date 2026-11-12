@@ -77,7 +77,7 @@
 	}
 	.to {
 		font-size: 12px;
-		color: var(--lime);
+		color: var(--accent);
 	}
 	b {
 		font-size: 14px;
@@ -87,10 +87,10 @@
 		color: var(--mist);
 	}
 	.ok {
-		color: var(--lime);
+		color: var(--accent);
 	}
 	.bad {
-		color: #ffb547;
+		color: var(--warn);
 	}
 	.empty {
 		padding: 20px;

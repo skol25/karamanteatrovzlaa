@@ -5,7 +5,8 @@ import { currentRate } from './bcv';
 import { saveFile, readFile, deleteFile } from './files';
 import { allSeatIds, sortSeats } from '#lib/seats.ts';
 import { sendMail, layout, esc } from './mail';
-import { bs, rateFmt, fechaLarga, hora } from '#lib/format.ts';
+import { bs, rateFmt, fechaLarga, fechaCorta, hora } from '#lib/format.ts';
+import { audit } from './audit';
 
 export type Performance = {
 	id: number;
@@ -58,14 +59,47 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 export async function sweepExpired() {
 	const now = Date.now();
 	const rate = await currentRate();
-	await batch([
-		{ sql: `UPDATE reservations SET status='expired', expire_reason='tiempo' WHERE status='held' AND expires_at <= ?`, args: [now] },
-		{ sql: `UPDATE reservations SET status='expired', expire_reason='tasa' WHERE status='held' AND rate_id <> ?`, args: [rate?.id ?? -1] },
+	const [byTime, byRate] = await batch([
+		{
+			sql: `UPDATE reservations SET status='expired', expire_reason='tiempo' WHERE status='held' AND expires_at <= ? RETURNING id, qty, performance_id`,
+			args: [now]
+		},
+		{
+			sql: `UPDATE reservations SET status='expired', expire_reason='tasa' WHERE status='held' AND rate_id <> ? RETURNING id, qty, performance_id`,
+			args: [rate?.id ?? -1]
+		},
 		{
 			sql: `DELETE FROM reservation_seats WHERE reservation_id IN (SELECT id FROM reservations WHERE status IN ('expired','rejected'))`,
 			args: []
 		}
 	]);
+	const log = (rows: typeof byTime.rows, why: string) =>
+		Promise.all(
+			rows.map((r) =>
+				audit(null, {
+					kind: 'sistema',
+					action: 'reserva_vencida',
+					summary: `Reserva #${r.id} vencida ${why}: se liberaron ${r.qty} asiento${Number(r.qty) === 1 ? '' : 's'}`,
+					entity: 'reserva',
+					entityId: Number(r.id)
+				})
+			)
+		);
+	if (byTime.rows.length || byRate.rows.length)
+		await Promise.all([log(byTime.rows, `(pasaron ${config.holdMinutes} min sin pago)`), log(byRate.rows, '(cambió la tasa BCV)')]);
+}
+
+/** Texto corto de una reserva para el registro de auditoría */
+export async function describeReservation(id: number) {
+	const r = await get<{ id: number; qty: number; total_bs: number; buyer_name: string | null; title: string; starts_at: string; seats: string }>(
+		`SELECT r.id, r.qty, r.total_bs, r.buyer_name, s.title, p.starts_at,
+		 (SELECT group_concat(seat, ', ') FROM reservation_seat_log l WHERE l.reservation_id=r.id) seats
+		 FROM reservations r JOIN performances p ON p.id=r.performance_id JOIN shows s ON s.id=p.show_id WHERE r.id=?`,
+		[id]
+	);
+	if (!r) return { text: `Reserva #${id}`, data: null };
+	const text = `#${r.id} · ${r.title} (${fechaCorta(r.starts_at)}) · ${r.qty} entrada${r.qty === 1 ? '' : 's'} [${r.seats}] · ${bs(r.total_bs)}${r.buyer_name ? ' · ' + r.buyer_name : ''}`;
+	return { text, data: r };
 }
 
 export type PerfFull = Performance & {
@@ -234,7 +268,7 @@ async function notifyAdmin(r: FullRes, receipt: Buffer) {
 	<tr><td style="padding:14px;font-size:13px;color:#cfcfcf;line-height:1.7">
 	<b style="color:#fff">${esc(r.buyer_name)}</b> · C.I. ${esc(r.buyer_doc)}<br>
 	${esc(r.email)} · ${esc(r.phone)}<br>
-	${esc(r.pay_method)} · ${esc(r.pay_bank)} · Ref. <b style="color:#fff">${esc(r.pay_ref)}</b>
+	Pagó a: ${esc(r.pay_method)} · Desde: ${esc(r.pay_bank)} · Ref. <b style="color:#fff">${esc(r.pay_ref)}</b>
 	</td></tr></table>
 	<a href="${link}" style="display:inline-block;background:#abce26;color:#0b0b0b;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:999px">Abrir panel de administración</a>
 	<p style="color:#8a8a8a;font-size:12px;margin-top:18px">Código de reserva: ${esc(r.token.slice(0, 8).toUpperCase())} · El comprobante va adjunto.</p>`;

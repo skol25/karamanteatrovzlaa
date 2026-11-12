@@ -5,6 +5,9 @@ import { currentRate, recentRates, refreshFromBcv, saveRate, fetchStatus } from 
 import { confirmReservation, rejectReservation, sweepExpired, BookingError } from '#lib/server/reservations.ts';
 import { todayCaracas } from '#lib/server/time.ts';
 import { ephemeralDb } from '#lib/server/config.ts';
+import { audit, clientIp } from '#lib/server/audit.ts';
+import { get } from '#lib/server/db.ts';
+import { describeReservation } from '#lib/server/reservations.ts';
 
 export const load = async ({ locals }) => {
 	if (!locals.admin) return { authed: false as const };
@@ -37,33 +40,61 @@ const guard = (locals: App.Locals) => {
 };
 
 export const actions = {
-	login: async ({ request, cookies, url }) => {
+	login: async (event) => {
+		const { request, cookies, url } = event;
 		const pw = String((await request.formData()).get('password') || '');
-		if (!checkPassword(pw)) return fail(401, { loginError: 'Clave incorrecta' });
+		// Frena los intentos de adivinar la clave: máximo 8 fallos cada 15 minutos por IP
+		const ip = clientIp(event);
+		const recent = await get<{ n: number }>(`SELECT COUNT(*) n FROM audit_log WHERE action='login_fallido' AND ip IS ? AND at > ?`, [
+			ip,
+			Date.now() - 15 * 60000
+		]);
+		if ((recent?.n ?? 0) >= 8) return fail(429, { loginError: 'Demasiados intentos. Espera 15 minutos e intenta de nuevo.' });
+		if (!checkPassword(pw)) {
+			await audit(event, { kind: 'admin', action: 'login_fallido', actor: 'Desconocido', summary: 'Intento de entrada al panel con clave incorrecta' });
+			return fail(401, { loginError: 'Clave incorrecta' });
+		}
 		login(cookies, url.protocol === 'https:');
+		await audit(event, { kind: 'admin', action: 'login', summary: 'Entró al panel de administración' });
 		redirect(303, '/admin');
 	},
-	logout: async ({ cookies }) => {
-		logout(cookies);
+	logout: async (event) => {
+		if (event.locals.admin) await audit(event, { kind: 'admin', action: 'logout', summary: 'Cerró sesión' });
+		logout(event.cookies);
 		redirect(303, '/admin');
 	},
-	bcv: async ({ locals }) => {
-		guard(locals);
+	bcv: async (event) => {
+		guard(event.locals);
 		const ok = await refreshFromBcv();
 		await sweepExpired();
+		await audit(event, {
+			kind: 'admin',
+			action: 'consulta_bcv',
+			summary: ok ? 'Consultó la tasa en el BCV manualmente' : 'Consultó el BCV manualmente, pero no respondió: ' + (await fetchStatus()).message
+		});
 		return ok ? { notice: 'Tasa consultada en el BCV.' } : fail(502, { error: 'No se pudo leer el BCV: ' + (await fetchStatus()).message });
 	},
-	tasa: async ({ request, locals }) => {
+	tasa: async (event) => {
+		const { request, locals } = event;
 		guard(locals);
 		const fd = await request.formData();
 		const rate = Number(String(fd.get('rate') || '').replace(/\./g, '').replace(',', '.'));
 		const date = String(fd.get('valid_date') || '');
 		if (!(rate > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail(400, { error: 'Tasa o fecha no válida.' });
+		const prev = await currentRate();
 		await saveRate(rate, date, 'manual');
+		await audit(event, {
+			kind: 'admin',
+			action: 'tasa_manual',
+			summary: `Registró tasa manual: ${rate} Bs/USD (fecha valor ${date})`,
+			entity: 'tasa',
+			detail: { rate, valid_date: date, anterior: prev ? { rate: prev.rate, valid_date: prev.valid_date, source: prev.source } : null }
+		});
 		await sweepExpired();
 		return { notice: 'Tasa manual registrada.' };
 	},
-	confirmar: async ({ request, locals }) => {
+	confirmar: async (event) => {
+		const { request, locals } = event;
 		guard(locals);
 		const id = Number((await request.formData()).get('id'));
 		try {
@@ -72,17 +103,31 @@ export const actions = {
 			if (e instanceof BookingError) return fail(400, { error: e.message });
 			throw e;
 		}
+		const d = await describeReservation(id);
+		await audit(event, { kind: 'admin', action: 'pago_confirmado', summary: `Confirmó el pago y envió las entradas: ${d.text}`, entity: 'reserva', entityId: id });
 		return { notice: 'Pago confirmado. Entradas enviadas al comprador.' };
 	},
-	rechazar: async ({ request, locals }) => {
+	rechazar: async (event) => {
+		const { request, locals } = event;
 		guard(locals);
 		const fd = await request.formData();
+		const id = Number(fd.get('id'));
+		const note = String(fd.get('note') || '').trim();
 		try {
-			await rejectReservation(Number(fd.get('id')), String(fd.get('note') || '').trim());
+			await rejectReservation(id, note);
 		} catch (e) {
 			if (e instanceof BookingError) return fail(400, { error: e.message });
 			throw e;
 		}
+		const d = await describeReservation(id);
+		await audit(event, {
+			kind: 'admin',
+			action: 'pago_rechazado',
+			summary: `Rechazó el pago y liberó los asientos: ${d.text}${note ? ` · Motivo: ${note}` : ''}`,
+			entity: 'reserva',
+			entityId: id,
+			detail: note ? { motivo: note } : undefined
+		});
 		return { notice: 'Pago rechazado. Asientos liberados y comprador notificado.' };
 	}
 };

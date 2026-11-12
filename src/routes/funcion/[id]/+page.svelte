@@ -157,7 +157,7 @@
 		margin-bottom: 24px;
 	}
 	.back:hover {
-		color: var(--lime);
+		color: var(--accent);
 	}
 	h1 {
 		font-size: clamp(24px, 3.6vw, 40px);
@@ -193,7 +193,7 @@
 		font-family: var(--display);
 		font-size: 11px;
 		letter-spacing: 0.5em;
-		color: var(--lime);
+		color: var(--accent);
 		text-transform: uppercase;
 	}
 	.map {
@@ -216,7 +216,7 @@
 	}
 	.seat {
 		aspect-ratio: 1;
-		border: 1.5px solid #4a4a4a;
+		border: 1.5px solid #c9c3b8;
 		background: var(--ink-3);
 		border-radius: 9px 9px 5px 5px;
 		cursor: pointer;
@@ -242,19 +242,19 @@
 		border-width: 0 0 1.5px;
 	}
 	.seat:hover:not(:disabled) {
-		border-color: var(--lime);
+		border-color: var(--accent);
 		color: var(--paper);
 		transform: translateY(-2px);
 	}
 	.seat.picked {
 		background: var(--lime);
-		border-color: var(--lime);
-		color: var(--ink);
+		border-color: var(--accent);
+		color: var(--on-accent);
 		font-weight: 800;
 	}
 	.seat.taken {
-		background: repeating-linear-gradient(45deg, #222 0 3px, #2c2c2c 3px 6px);
-		border-color: #2c2c2c;
+		background: repeating-linear-gradient(45deg, #d6d0c6 0 3px, #e2ddd4 3px 6px);
+		border-color: #e2ddd4;
 		color: transparent;
 		cursor: not-allowed;
 	}
@@ -311,7 +311,7 @@
 	}
 	.stepper button:hover:not(:disabled) {
 		background: var(--lime);
-		color: var(--ink);
+		color: var(--on-accent);
 	}
 	.stepper button:disabled {
 		opacity: 0.3;
@@ -334,7 +334,7 @@
 	}
 	.tag {
 		border: 1px solid var(--lime);
-		color: var(--lime);
+		color: var(--accent);
 		background: var(--lime-soft);
 		border-radius: 8px;
 		padding: 6px 10px;
@@ -369,7 +369,7 @@
 		font-size: 15px;
 	}
 	.sum b {
-		color: var(--lime);
+		color: var(--accent);
 		font-size: 20px;
 	}
 	.sum small {
@@ -383,7 +383,7 @@
 	.alert {
 		background: #ff6b5a1a;
 		border: 1px solid #ff6b5a55;
-		color: #ffb1a7;
+		color: var(--danger);
 		padding: 12px 14px;
 		border-radius: 12px;
 		margin: 0;

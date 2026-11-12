@@ -2,7 +2,14 @@ import nodemailer from 'nodemailer';
 import { config } from './config';
 import { run } from './db';
 
+/**
+ * Cómo se envían los correos:
+ *  - SMTP_HOST definido → por SMTP (Brevo, Private Email, Gmail…)
+ *  - MAIL_TRANSPORT=sendmail → con el sendmail del propio servidor (cPanel/Namecheap), sin contraseña
+ *  - nada → solo se registran en /admin/correos (demo)
+ */
 const smtpReady = !!config.smtp.host;
+const useSendmail = !smtpReady && process.env.MAIL_TRANSPORT === 'sendmail';
 
 const transport = smtpReady
 	? nodemailer.createTransport({
@@ -11,7 +18,11 @@ const transport = smtpReady
 			secure: config.smtp.secure,
 			auth: config.smtp.user ? { user: config.smtp.user, pass: config.smtp.pass } : undefined
 		})
-	: null;
+	: useSendmail
+		? nodemailer.createTransport({ sendmail: true, newline: 'unix', path: process.env.SENDMAIL_PATH || '/usr/sbin/sendmail' })
+		: null;
+const canSend = !!transport;
+const replyTo = process.env.MAIL_REPLY_TO || undefined;
 
 export type Attachment = { filename: string; content: Buffer; contentType?: string };
 
@@ -21,10 +32,10 @@ export type Attachment = { filename: string; content: Buffer; contentType?: stri
  */
 export async function sendMail(to: string, subject: string, html: string, attachments: Attachment[] = []) {
 	let delivered = 0;
-	let error: string | null = smtpReady ? null : 'SMTP no configurado (solo registrado)';
+	let error: string | null = canSend ? null : 'Envío de correo no configurado (solo registrado)';
 	if (transport) {
 		try {
-			await transport.sendMail({ from: config.smtp.from, to, subject, html, attachments });
+			await transport.sendMail({ from: config.smtp.from, replyTo, to, subject, html, attachments });
 			delivered = 1;
 		} catch (e) {
 			error = (e as Error).message;

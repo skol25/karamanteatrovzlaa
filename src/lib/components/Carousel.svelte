@@ -75,8 +75,8 @@
 		transition: 0.2s;
 	}
 	.arrow:hover:not(:disabled) {
-		border-color: var(--lime);
-		color: var(--lime);
+		border-color: var(--accent);
+		color: var(--accent);
 	}
 	.arrow:disabled {
 		opacity: 0.3;

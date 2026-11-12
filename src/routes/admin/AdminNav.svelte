@@ -7,7 +7,10 @@
 	<div class="links">
 		<a href="/admin" class:on={page.url.pathname === '/admin'}>Pagos y tasa</a>
 		<a href="/admin/obras" class:on={page.url.pathname === '/admin/obras'}>Obras y funciones</a>
+		<a href="/admin/pagos" class:on={page.url.pathname === '/admin/pagos'}>Métodos de pago</a>
+		<a href="/admin/videos" class:on={page.url.pathname === '/admin/videos'}>Videos</a>
 		<a href="/admin/correos" class:on={page.url.pathname === '/admin/correos'}>Correos</a>
+		<a href="/admin/auditoria" class:on={page.url.pathname === '/admin/auditoria'}>Auditoría</a>
 	</div>
 	<form method="POST" action="/admin?/logout" use:enhance><button>Cerrar sesión</button></form>
 </div>
@@ -36,7 +39,7 @@
 	}
 	a.on {
 		background: var(--ink-3);
-		color: var(--lime);
+		color: var(--accent);
 	}
 	button {
 		background: none;

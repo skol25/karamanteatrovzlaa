@@ -32,9 +32,6 @@
 	<meta name="description" content={s.tagline} />
 </svelte:head>
 
-{#if s.poster}
-	<div class="backdrop" style="background-image:url('{s.poster.startsWith('/') ? s.poster : '/archivo/' + s.poster}')" aria-hidden="true"></div>
-{/if}
 <article class="wrap detail">
 	<a href="/" class="back">← Cartelera</a>
 	<div class="top">
@@ -138,29 +135,18 @@
 </article>
 
 <style>
-	.backdrop {
-		position: absolute;
-		left: 0;
-		right: 0;
-		top: 0;
-		height: 720px;
-		z-index: -1;
-		background-size: cover;
-		background-position: center;
-		filter: blur(50px) saturate(1.2);
-		opacity: 0.28;
-		mask-image: linear-gradient(to bottom, #000 30%, transparent);
-		pointer-events: none;
-	}
 	.detail {
 		position: relative;
 		padding-top: 28px;
 	}
 	.pwrap {
-		border-radius: 16px;
-		box-shadow:
-			0 30px 80px -20px #000,
-			0 0 0 1px #ffffff14;
+		padding: 12px;
+		border: 1px solid var(--line);
+		background: var(--ink-2);
+		align-self: start;
+	}
+	.pwrap :global(.poster) {
+		border-radius: 0;
 	}
 	.back {
 		font-size: 14px;
@@ -168,7 +154,7 @@
 		font-weight: 600;
 	}
 	.back:hover {
-		color: var(--lime);
+		color: var(--accent);
 	}
 	.top {
 		display: grid;
@@ -183,7 +169,7 @@
 	}
 	.tag {
 		font-size: 18px;
-		color: #cfcfcf;
+		color: var(--text-2);
 		margin: 0 0 18px;
 	}
 	.chips {
@@ -194,7 +180,7 @@
 	.syn {
 		font-size: 17px;
 		line-height: 1.75;
-		color: #dedede;
+		color: var(--text-2);
 		max-width: 62ch;
 		margin: 26px 0;
 	}
@@ -250,7 +236,7 @@
 		border-color: #555;
 	}
 	.perf.on {
-		border-color: var(--lime);
+		border-color: var(--accent);
 		background: linear-gradient(90deg, var(--lime-soft), var(--ink-2) 60%);
 	}
 	.perf:disabled {
@@ -270,8 +256,8 @@
 	}
 	.on .date {
 		background: var(--lime);
-		border-color: var(--lime);
-		color: var(--ink);
+		border-color: var(--accent);
+		color: var(--on-accent);
 	}
 	.dw,
 	.dm {
@@ -292,14 +278,14 @@
 	}
 	.pi span {
 		font-size: 14px;
-		color: #cfcfcf;
+		color: var(--text-2);
 	}
 	.pi small {
 		font-size: 12px;
 		color: var(--mist);
 	}
 	.pi small.few {
-		color: #ffb547;
+		color: var(--warn);
 	}
 	.pp {
 		font-weight: 800;
@@ -325,7 +311,7 @@
 	.loc {
 		display: flex;
 		gap: 12px;
-		color: var(--lime);
+		color: var(--accent);
 	}
 	.loc div {
 		display: grid;
@@ -337,7 +323,7 @@
 		color: var(--mist);
 	}
 	.lnk {
-		color: var(--lime);
+		color: var(--accent);
 		font-weight: 700;
 		font-size: 13px;
 	}
@@ -369,7 +355,7 @@
 	}
 	.stepper button:hover:not(:disabled) {
 		background: var(--lime);
-		color: var(--ink);
+		color: var(--on-accent);
 	}
 	.stepper button:disabled {
 		opacity: 0.3;
@@ -393,7 +379,7 @@
 		font-size: 17px;
 	}
 	.sum .total b {
-		color: var(--lime);
+		color: var(--accent);
 	}
 	.sum small {
 		color: var(--mist);
@@ -403,7 +389,7 @@
 		width: 100%;
 	}
 	.warn {
-		color: #ffb547;
+		color: var(--warn);
 		font-size: 14px;
 		margin: 0;
 	}
@@ -411,7 +397,7 @@
 		color: var(--mist);
 	}
 	.pastlist {
-		color: #cfcfcf;
+		color: var(--text-2);
 		text-transform: capitalize;
 		line-height: 2;
 	}

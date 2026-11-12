@@ -111,7 +111,7 @@
 	.notice {
 		background: var(--lime-soft);
 		border: 1px solid #abce2666;
-		color: var(--lime);
+		color: var(--accent);
 		padding: 12px 16px;
 		border-radius: 12px;
 		margin: 0;
@@ -119,7 +119,7 @@
 	.err {
 		background: #ff6b5a1a;
 		border: 1px solid #ff6b5a55;
-		color: #ffb1a7;
+		color: var(--danger);
 		padding: 12px 16px;
 		border-radius: 12px;
 		margin: 0;
@@ -168,7 +168,7 @@
 		border: 2px solid transparent;
 	}
 	.vrow label.on {
-		border-color: var(--lime);
+		border-color: var(--accent);
 	}
 	.check {
 		display: flex;
@@ -177,7 +177,7 @@
 		font-size: 14px;
 	}
 	.check input {
-		accent-color: var(--lime);
+		accent-color: var(--accent);
 		width: 18px;
 		height: 18px;
 	}
@@ -211,7 +211,7 @@
 	}
 	.badge {
 		background: var(--lime);
-		color: var(--ink);
+		color: var(--on-accent);
 		font-size: 11px;
 		font-weight: 800;
 		padding: 3px 9px;

@@ -1,8 +1,10 @@
 import https from 'node:https';
+import tls from 'node:tls';
 import fs from 'node:fs';
 import { parse } from 'node-html-parser';
 import { all, get, run } from './db';
 import { config } from './config';
+import { audit } from './audit';
 import { todayCaracas, daysBetween } from './time';
 
 export type Rate = { id: number; rate: number; valid_date: string; source: 'bcv' | 'manual'; fetched_at: string };
@@ -28,7 +30,10 @@ function fetchText(url: string, timeoutMs: number): Promise<string> {
 		headers: { 'User-Agent': 'Mozilla/5.0 (KaramanteaTeatro tasa BCV)' },
 		timeout: timeoutMs
 	};
-	if (config.bcvCaFile) opts.ca = fs.readFileSync(config.bcvCaFile);
+	// El BCV envía su cadena de certificados incompleta: se agrega el certificado intermedio
+	// a los certificados raíz normales (no los reemplaza).
+	if (config.bcvCaFile && fs.existsSync(config.bcvCaFile))
+		opts.ca = [...tls.rootCertificates, fs.readFileSync(config.bcvCaFile, 'utf8')];
 	if (config.bcvInsecureTls) opts.rejectUnauthorized = false;
 	return new Promise((resolve, reject) => {
 		const req = https.get(url, opts, (res) => {
@@ -94,6 +99,14 @@ export async function saveRate(rate: number, valid_date: string, source: 'bcv' |
 	]);
 	if (last && last.rate === rate) return false;
 	await run('INSERT INTO rates (rate, valid_date, source) VALUES (?,?,?)', [rate, valid_date, source]);
+	if (source === 'bcv')
+		await audit(null, {
+			kind: 'sistema',
+			action: 'tasa_bcv',
+			summary: `Nueva tasa BCV: ${rate} Bs/USD (fecha valor ${valid_date})`,
+			entity: 'tasa',
+			detail: { rate, valid_date, anterior: last?.rate ?? null }
+		});
 	return true;
 }
 

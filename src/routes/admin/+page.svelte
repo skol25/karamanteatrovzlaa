@@ -115,7 +115,7 @@
 							{#if r.buyer_name}
 								<p class="buyer">
 									{r.buyer_name} · C.I. {r.buyer_doc} · {r.email} · {r.phone}<br />
-									{r.pay_method} · {r.pay_bank} · Ref. <b>{r.pay_ref}</b>
+									Pagó a: {r.pay_method} · Desde: {r.pay_bank} · Ref. <b>{r.pay_ref}</b>
 									{#if r.submitted_at}<span class="muted"> · enviado {fechaHora(r.submitted_at)}</span>{/if}
 								</p>
 							{/if}
@@ -180,13 +180,13 @@
 	.notice {
 		background: var(--lime-soft);
 		border: 1px solid #abce2666;
-		color: var(--lime);
+		color: var(--accent);
 		padding: 12px 16px;
 		border-radius: 12px;
 		margin: 0;
 	}
 	.err {
-		color: #ffb1a7;
+		color: var(--danger);
 		margin: 0;
 	}
 	.err.box {
@@ -221,7 +221,7 @@
 		padding-top: 8px;
 	}
 	.stats b.hot {
-		color: var(--lime);
+		color: var(--accent);
 	}
 	.rate {
 		padding: 22px;
@@ -245,7 +245,7 @@
 		color: var(--mist);
 	}
 	.big.warn {
-		color: #ffb547;
+		color: var(--warn);
 		font-size: 22px;
 	}
 	.muted {
@@ -260,10 +260,10 @@
 		text-transform: capitalize;
 	}
 	.ok {
-		color: var(--lime);
+		color: var(--accent);
 	}
 	.bad {
-		color: #ffb547;
+		color: var(--warn);
 	}
 	.manual {
 		display: grid;
@@ -327,7 +327,7 @@
 	}
 	.tabs button.on {
 		background: var(--lime);
-		color: var(--ink);
+		color: var(--on-accent);
 	}
 	.list {
 		display: grid;
@@ -341,10 +341,10 @@
 		border-left: 4px solid var(--line);
 	}
 	.st-submitted {
-		border-left-color: var(--lime);
+		border-left-color: var(--accent);
 	}
 	.st-held {
-		border-left-color: #ffb547;
+		border-left-color: var(--warn);
 	}
 	.st-expired,
 	.st-rejected {
@@ -366,7 +366,7 @@
 	}
 	.st-submitted .badge {
 		background: var(--lime);
-		color: var(--ink);
+		color: var(--on-accent);
 	}
 	.code {
 		font-family: var(--display);
@@ -381,7 +381,7 @@
 		font-size: 14px;
 	}
 	.seats {
-		color: var(--lime);
+		color: var(--accent);
 	}
 	.buyer {
 		background: var(--ink);
