@@ -300,7 +300,10 @@
 		</div>
 	{:else}
 		<section class="state card">
-			{#if r.status === 'submitted'}
+			{#if r.status === 'blocked'}
+				<h2>Ocupación registrada por el organizador</h2>
+				<p>Estos puestos están ocupados por una operación externa. Consulta con taquilla los detalles de tus entradas.</p>
+			{:else if r.status === 'submitted'}
 				<div class="icon ok">
 					<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
 				</div>

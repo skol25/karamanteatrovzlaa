@@ -1,0 +1,48 @@
+name: Deploy Namecheap
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: namecheap-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: node --experimental-strip-types --test tests/seatmap.test.mjs
+      - run: npm run build
+        env:
+          VERCEL: ''
+      - name: Package release
+        run: |
+          node scripts/package-release.mjs
+          tar -czf "karamantea-upload-${GITHUB_SHA}.tgz" -C .deployment/release .
+      - name: Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_KEY"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap
+          chmod 600 ~/.ssh/namecheap
+          cp .github/namecheap_known_hosts ~/.ssh/known_hosts
+      - name: Upload and activate release
+        run: |
+          scp -P 21098 -i ~/.ssh/namecheap -o BatchMode=yes -o StrictHostKeyChecking=yes "karamantea-upload-${GITHUB_SHA}.tgz" karapuwa@premium291.web-hosting.com:/home/karapuwa/
+          ssh -p 21098 -i ~/.ssh/namecheap -o BatchMode=yes -o StrictHostKeyChecking=yes karapuwa@premium291.web-hosting.com "bash -s -- ${GITHUB_SHA}" < scripts/deploy-namecheap.sh

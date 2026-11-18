@@ -174,6 +174,7 @@ export function brandLayout(o: { preheader: string; tag: string; kicker: string;
 
 /** Bloque grande del puesto en la entrada: "Mesa 12 / Puesto 3 / VIP" o la butaca "C7" */
 function seatCell(seat: string, zone: string | null) {
+	if (seat.startsWith('U-')) return `<p style="margin:0;font-family:${SERIF};font-size:24px;color:${C.ink}">${esc(zone ?? 'General')}</p><p style="font-size:13px;color:${C.muted}">Ubicación libre<br>Sin asiento numerado</p>`;
 	const lab = (t: string) => `<p style="margin:0;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:${C.muted}">${t}</p>`;
 	const big = (t: string) => `<p style="margin:2px 0 8px;font-family:${SERIF};font-size:34px;line-height:1;color:${C.ink}">${t}</p>`;
 	const m = seat.match(/^M(\d+)-(\d+)$/);

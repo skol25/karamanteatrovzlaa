@@ -19,7 +19,7 @@ export function readPlano(fd: FormData, opts: { locked?: string[]; previous?: st
 		plan = {
 			kind: 'libre',
 			w: num(raw.w, W) || W,
-			zones: raw.zones.map((z: any) => ({ id: String(z.id), name: String(z.name).trim().slice(0, 30), color: String(z.color), price: Math.round(Number(z.price) * 100) / 100 })),
+			zones: raw.zones.map((z: any) => ({ id: String(z.id), name: String(z.name).trim().slice(0, 30), color: String(z.color), price: Math.round(Number(z.price) * 100) / 100, ...(z.unassignedCapacity != null ? { unassignedCapacity: num(z.unassignedCapacity) } : {}) })),
 			stage: { x: num(raw.stage?.x), y: num(raw.stage?.y), w: num(raw.stage?.w, 660), h: num(raw.stage?.h, 56), label: String(raw.stage?.label ?? 'Escenario').slice(0, 30) },
 			items: raw.items.map((it: any) =>
 				it.type === 'mesa'

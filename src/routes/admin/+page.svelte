@@ -13,7 +13,8 @@
 		submitted: 'Por verificar',
 		confirmed: 'Confirmada',
 		rejected: 'Rechazada',
-		expired: 'Vencida'
+		expired: 'Vencida',
+		blocked: 'Ocupación externa'
 	};
 </script>
 

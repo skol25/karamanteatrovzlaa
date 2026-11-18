@@ -43,7 +43,7 @@
 				<text x={l.x} y={l.y} text-anchor={l.anchor} class="rowl">{l.text}</text>
 			{/each}
 
-			{#each map.seats as s (s.id)}
+			{#each map.seats.filter((s) => s.kind !== 'libre') as s (s.id)}
 				{@const isTaken = taken.has(s.id)}
 				{@const isMine = pickedSet.has(s.id)}
 				{@const label = s.kind === 'silla' ? `Mesa ${s.table}, puesto ${s.chair}` : `Fila ${s.row}, asiento ${s.num}`}

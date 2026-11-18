@@ -10,7 +10,7 @@
  *  - silla de mesa: "M12-3"  = mesa 12, puesto 3
  *  - butaca:        "C7"     = fila C, asiento 7
  */
-export type Zone = { id: string; name: string; color: string; price: number };
+export type Zone = { id: string; name: string; color: string; price: number; unassignedCapacity?: number };
 export type Stage = { x: number; y: number; w: number; h: number; label: string };
 export type MesaItem = { type: 'mesa'; key: string; n: number; x: number; y: number; seats: number; zone: string };
 export type BloqueItem = {
@@ -90,10 +90,10 @@ export const TEMPLATE_TIBISAY: Plan = presetMesas(
 	[Z.vip, Z.plata, Z.general],
 	[
 		...Array.from({ length: 5 }, () => ({ zone: 'vip', tables: 8, seats: 9 })),
-		{ zone: 'plata', tables: 12, seats: 9 },
-		{ zone: 'general', tables: 8, seats: 9 }
+		...Array.from({ length: 4 }, () => ({ zone: 'plata', tables: 8, seats: 9 }))
 	]
 );
+TEMPLATE_TIBISAY.zones = TEMPLATE_TIBISAY.zones.map((z) => z.id === 'general' ? { ...z, unassignedCapacity: 72 } : z);
 
 /** Teatro con pasillo central: dos bloques por zona, numeración continua de izquierda a derecha */
 export function presetTeatro(): Plan {
@@ -156,7 +156,7 @@ export function presetButacas(capacity: number, price: number): Plan {
 }
 
 export const PRESETS: { id: string; name: string; desc: string; make: () => Plan }[] = [
-	{ id: 'mesas', name: 'Mesas (tipo Hotel Tibisay)', desc: '60 mesas de 9 · VIP, Plata y General', make: () => structuredClone(TEMPLATE_TIBISAY) },
+	{ id: 'mesas', name: 'Mesas (tipo Hotel Tibisay)', desc: '40 mesas VIP · 32 Plata · General sin numerar', make: () => structuredClone(TEMPLATE_TIBISAY) },
 	{ id: 'teatro', name: 'Teatro con pasillo', desc: 'Butacas en dos bloques · VIP, Platea y General', make: presetTeatro },
 	{ id: 'cine', name: 'Cine', desc: 'Un bloque ancho · General y Preferencial', make: presetCine },
 	{ id: 'vacio', name: 'En blanco', desc: 'Solo el escenario; agrega mesas y butacas a mano', make: () => ({ ...presetTeatro(), items: [] }) }
@@ -191,9 +191,15 @@ export function validatePlan(p: Plan): string | null {
 		if (!(z.price > 0)) return `El precio de la zona ${z.name} debe ser mayor que cero.`;
 		if (!/^#[0-9a-f]{6}$/i.test(z.color)) return `Color no válido en la zona ${z.name}.`;
 		if (zids.has(z.id)) return 'Hay zonas repetidas.';
+		if (!/^[a-zA-Z0-9_-]+$/.test(z.id)) return 'Identificador de zona no válido.';
+		if (z.unassignedCapacity != null) {
+			if (!Number.isInteger(z.unassignedCapacity) || z.unassignedCapacity < 1 || z.unassignedCapacity > MAX_CAPACITY)
+				return `El aforo libre de ${z.name} debe estar entre 1 y ${MAX_CAPACITY}.`;
+			if (p.items.some((it) => it.zone === z.id)) return `La zona ${z.name} es de ubicación libre: quita sus mesas o butacas.`;
+		}
 		zids.add(z.id);
 	}
-	if (!p.items.length) return 'Agrega al menos una mesa o un bloque de butacas.';
+	if (!p.items.length && !p.zones.some((z) => z.unassignedCapacity)) return 'Agrega al menos una mesa, un bloque de butacas o una zona libre.';
 	if (p.items.length > MAX_ITEMS) return `Máximo ${MAX_ITEMS} elementos por plano.`;
 	const nums = new Set<number>();
 	for (const it of p.items) {
@@ -226,11 +232,12 @@ function* seatIds(p: Plan) {
 	for (const it of p.items)
 		if (it.type === 'mesa') for (let c = 1; c <= it.seats; c++) yield `M${it.n}-${c}`;
 		else for (let r = 0; r < it.rows; r++) for (let c = 0; c < it.cols; c++) yield `${rowLetter(it.rowStart, r)}${it.numStart + c}`;
+	for (const z of p.zones) for (let n = 1; n <= Math.min(MAX_CAPACITY, z.unassignedCapacity ?? 0); n++) yield `U-${z.id}-${n}`;
 }
 
 // ---------------------------------------------------------------- dibujo
 
-export type PSeat = { id: string; x: number; y: number; zone: string; kind: 'silla' | 'butaca'; table?: number; chair?: number; row?: string; num?: number };
+export type PSeat = { id: string; x: number; y: number; zone: string; kind: 'silla' | 'butaca' | 'libre'; table?: number; chair?: number; row?: string; num?: number };
 export type PTable = { n: number; x: number; y: number; zone: string; seatIds: string[]; key: string };
 export type PLabel = { x: number; y: number; text: string; anchor: 'start' | 'end' };
 export type ExpandedMap = {
@@ -291,6 +298,11 @@ export function expandMap(p: Plan): ExpandedMap {
 		const b = itemBox(it);
 		maxY = Math.max(maxY, b.y + b.h);
 	}
+	for (const zone of p.zones) for (let n = 1; n <= Math.min(MAX_CAPACITY, zone.unassignedCapacity ?? 0); n++) {
+		const id = `U-${zone.id}-${n}`;
+		seats.push({ id, x: 0, y: 0, zone: zone.id, kind: 'libre' });
+		byId[id] = { zone, label: `${zone.name} · Ubicación libre` };
+	}
 	return { plan: p, zones: p.zones, stage: p.stage, seats, tables, labels, capacity: seats.length, w: p.w || W, h: Math.ceil(maxY + 30), byId };
 }
 
@@ -300,6 +312,7 @@ export const isMesaSeat = (id: string) => /^M\d+-\d+$/.test(id);
 
 /** "M12-3" → "Mesa 12 · Puesto 3"; "C7" → "Fila C · Asiento 7" */
 export function seatLabel(id: string) {
+	if (id.startsWith('U-')) return 'Ubicación libre';
 	const m = id.match(/^M(\d+)-(\d+)$/);
 	if (m) return `Mesa ${m[1]} · Puesto ${m[2]}`;
 	const b = id.match(/^([A-Z]{1,2})(\d+)$/);
@@ -307,7 +320,12 @@ export function seatLabel(id: string) {
 }
 
 /** Texto corto de varios puestos: "Mesa 12: puestos 3, 4 · Fila C: 7, 8" */
-export function seatsSummary(ids: string[]) {
+export function seatsSummary(ids: string[]): string {
+	const free = ids.filter((id) => id.startsWith('U-'));
+	if (free.length) {
+		const numbered = ids.filter((id) => !id.startsWith('U-'));
+		return [numbered.length ? seatsSummary(numbered) : '', `${free.length} entrada${free.length === 1 ? '' : 's'} de ubicación libre`].filter(Boolean).join(' · ');
+	}
 	const by = new Map<string, number[]>();
 	for (const id of ids) {
 		const m = id.match(/^M(\d+)-(\d+)$/) ?? id.match(/^([A-Z]{1,2})(\d+)$/);

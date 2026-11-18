@@ -320,6 +320,8 @@
 						<label class="pr"><span>$</span><input class="input" type="number" min="1" step="0.5" bind:value={z.price} aria-label="Precio {z.name}" /></label>
 						<button type="button" class="x" onclick={() => removeZone(z)} aria-label="Quitar {z.name}">×</button>
 						<small class="cnt">{perZone[i]} puestos</small>
+						<label><input type="checkbox" checked={z.unassignedCapacity != null} onchange={(e) => { if (e.currentTarget.checked) z.unassignedCapacity = 72; else delete z.unassignedCapacity; }} /> Ubicación libre</label>
+						{#if z.unassignedCapacity != null}<label>Aforo libre <input class="input" type="number" min="1" max="3000" bind:value={z.unassignedCapacity} aria-label="Aforo libre {z.name}" /></label>{/if}
 					</div>
 				{/each}
 			</section>

@@ -335,7 +335,7 @@ export async function seedVenues(db: Client) {
 				String(p.address ?? ''),
 				String(p.maps_url ?? ''),
 				isTibisay ? JSON.stringify(TEMPLATE_TIBISAY) : p.layout ?? null,
-				isTibisay ? 540 : Number(p.capacity),
+				isTibisay ? expandMap(TEMPLATE_TIBISAY).capacity : Number(p.capacity),
 				isTibisay ? 20 : Number(p.price_usd),
 				Date.now()
 			]

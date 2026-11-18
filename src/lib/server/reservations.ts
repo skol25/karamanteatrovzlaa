@@ -31,7 +31,7 @@ export type Reservation = {
 	token: string;
 	performance_id: number;
 	qty: number;
-	status: 'held' | 'submitted' | 'confirmed' | 'rejected' | 'expired';
+	status: 'held' | 'submitted' | 'confirmed' | 'rejected' | 'expired' | 'blocked';
 	expire_reason: string | null;
 	rate_id: number;
 	rate: number;

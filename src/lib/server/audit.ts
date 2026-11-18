@@ -70,6 +70,7 @@ export async function audit(ev: RequestEvent | null | undefined, e: AuditEntry) 
 }
 
 export const ACTIONS: Record<string, string> = {
+	ocupacion_externa: 'Ocupación externa',
 	login: 'Inicio de sesión',
 	login_fallido: 'Clave incorrecta',
 	logout: 'Cierre de sesión',

@@ -105,6 +105,17 @@
 	});
 
 	const rate = $derived(data.rate?.rate ?? null);
+	const freeZones = $derived(data.map?.zones.filter((z) => z.unassignedCapacity != null) ?? []);
+	function changeFree(zoneId: string, delta: number) {
+		const ids = data.map?.seats.filter((s) => s.kind === 'libre' && s.zone === zoneId).map((s) => s.id) ?? [];
+		if (delta < 0) {
+			const last = picked.filter((s) => ids.includes(s)).at(-1);
+			if (last) picked = picked.filter((s) => s !== last);
+		} else {
+			const next = ids.find((s) => !taken.has(s) && !picked.includes(s));
+			if (next) toggleMesa(next);
+		}
+	}
 	const ready = $derived(data.map ? picked.length > 0 : picked.length === n);
 </script>
 
@@ -128,11 +139,24 @@
 				{#if data.map}
 					<div class="ztabs">
 						{#each zoneInfo as zi (zi.z.id)}
-							<span class="ztab"><i style="background:{zi.z.color}"></i><b>{zi.z.name}</b> · {zi.where}</span>
+							<span class="ztab"><i style="background:{zi.z.color}"></i><b>{zi.z.name}</b> · {zi.z.unassignedCapacity != null ? 'Ubicación libre' : zi.where}</span>
 						{/each}
 					</div>
 					<p class="howto">{data.map.tables.length ? 'Toca una silla para elegir ese puesto, o toca el número de la mesa para elegir la mesa completa.' : 'Toca los asientos que quieres en el plano.'}</p>
 					<MesaMap map={data.map} {taken} {picked} ontoggle={toggleMesa} ontable={pickTable} />
+					{#each freeZones as z (z.id)}
+						{@const ids = data.map.seats.filter((s) => s.zone === z.id && s.kind === 'libre').map((s) => s.id)}
+						{@const qty = picked.filter((s) => ids.includes(s)).length}
+						{@const available = ids.filter((s) => !taken.has(s)).length}
+						<div class="qty">
+							<div><b>{z.name} · Ubicación libre</b><p>Sin mesa ni asiento numerado · {available} disponibles · USD {z.price}</p></div>
+							<div class="stepper">
+								<button type="button" onclick={() => changeFree(z.id, -1)} disabled={!qty} aria-label="Menos entradas {z.name}">−</button>
+								<output aria-live="polite">{qty}</output>
+								<button type="button" onclick={() => changeFree(z.id, 1)} disabled={qty >= available || picked.length >= max} aria-label="Más entradas {z.name}">+</button>
+							</div>
+						</div>
+					{/each}
 					{#if toast}
 						<div class="toast {toast.kind}" role="status" aria-live="polite">
 							<span>{toast.kind === 'ok' ? '✓' : toast.kind === 'off' ? '−' : '!'}</span>
