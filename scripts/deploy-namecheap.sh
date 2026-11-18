@@ -9,7 +9,10 @@ app=/home/karapuwa/karamantea
 releases=/home/karapuwa/karamantea-releases
 archive="/home/karapuwa/karamantea-upload-${sha}.tgz"
 release="$releases/$sha"
+# El activador de CloudLinux consulta variables opcionales sin valor por defecto.
+set +u
 source /home/karapuwa/nodevenv/karamantea/22/bin/activate
+set -u
 mkdir -p "$releases" "$app/data/backups" "$app/tmp"
 exec 9>"$app/tmp/deploy.lock"
 flock -w 300 9
