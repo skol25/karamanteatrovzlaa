@@ -47,8 +47,9 @@ mv -Tf "$app/build-next" "$app/build"
 cp "$release/app.cjs" "$app/app.cjs"
 touch "$app/tmp/restart.txt"
 healthy=0
+expected_version="$(cat "$release/build/client/_app/version.json")"
 for attempt in {1..12}; do
-  if curl --fail --silent --show-error --max-time 20 "https://karamantea.com/deployment.json?deploy_check=$sha" | grep -Fq "\"sha\":\"$sha\""; then healthy=1; break; fi
+  if actual_version="$(curl --fail --silent --show-error --max-time 20 "https://karamantea.com/_app/version.json?deploy_check=$sha")" && [[ "$actual_version" == "$expected_version" ]]; then healthy=1; break; fi
   sleep 5
 done
 if [[ "$healthy" != 1 ]]; then
