@@ -94,10 +94,10 @@ export async function maybeRefreshBcv() {
 
 /** Nunca se modifica una tasa: si cambia se inserta otra, y así vencen las cotizaciones hechas con la anterior. */
 export async function saveRate(rate: number, valid_date: string, source: 'bcv' | 'manual') {
-	const last = await get<{ rate: number }>('SELECT rate FROM rates WHERE valid_date=? ORDER BY id DESC LIMIT 1', [
+	const last = await get<{ rate: number; source: string }>('SELECT rate, source FROM rates WHERE valid_date=? ORDER BY id DESC LIMIT 1', [
 		valid_date
 	]);
-	if (last && last.rate === rate) return false;
+	if (last && last.rate === rate && last.source === source) return false;
 	await run('INSERT INTO rates (rate, valid_date, source) VALUES (?,?,?)', [rate, valid_date, source]);
 	if (source === 'bcv')
 		await audit(null, {
