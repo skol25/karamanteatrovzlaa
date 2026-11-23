@@ -90,7 +90,9 @@ export const TEMPLATE_TIBISAY: Plan = presetMesas(
 	[Z.vip, Z.plata, Z.general],
 	[
 		...Array.from({ length: 5 }, () => ({ zone: 'vip', tables: 8, seats: 9 })),
-		...Array.from({ length: 4 }, () => ({ zone: 'plata', tables: 8, seats: 9 }))
+		{ zone: 'plata', tables: 8, seats: 9 },
+		{ zone: 'plata', tables: 8, seats: 9 },
+		{ zone: 'plata', tables: 4, seats: 9 }
 	]
 );
 TEMPLATE_TIBISAY.zones = TEMPLATE_TIBISAY.zones.map((z) => z.id === 'general' ? { ...z, unassignedCapacity: 72 } : z);
@@ -156,7 +158,7 @@ export function presetButacas(capacity: number, price: number): Plan {
 }
 
 export const PRESETS: { id: string; name: string; desc: string; make: () => Plan }[] = [
-	{ id: 'mesas', name: 'Mesas (tipo Hotel Tibisay)', desc: '40 mesas VIP · 32 Plata · General sin numerar', make: () => structuredClone(TEMPLATE_TIBISAY) },
+	{ id: 'mesas', name: 'Mesas (tipo Hotel Tibisay)', desc: '60 mesas: 40 VIP y 20 Plata · General sin numerar', make: () => structuredClone(TEMPLATE_TIBISAY) },
 	{ id: 'teatro', name: 'Teatro con pasillo', desc: 'Butacas en dos bloques · VIP, Platea y General', make: presetTeatro },
 	{ id: 'cine', name: 'Cine', desc: 'Un bloque ancho · General y Preferencial', make: presetCine },
 	{ id: 'vacio', name: 'En blanco', desc: 'Solo el escenario; agrega mesas y butacas a mano', make: () => ({ ...presetTeatro(), items: [] }) }
