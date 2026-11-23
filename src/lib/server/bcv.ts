@@ -5,7 +5,8 @@ import { parse } from 'node-html-parser';
 import { all, get, run } from './db';
 import { config } from './config';
 import { audit } from './audit';
-import { todayCaracas, daysBetween } from './time';
+import { todayCaracas } from './time';
+import { publishedRate } from '../rate-policy';
 
 export type Rate = { id: number; rate: number; valid_date: string; source: 'bcv' | 'manual'; fetched_at: string };
 export type FetchStatus = { at: number; ok: boolean; message: string };
@@ -110,16 +111,14 @@ export async function saveRate(rate: number, valid_date: string, source: 'bcv' |
 }
 
 /**
- * Tasa vigente hoy: la de "fecha valor" más reciente que no sea futura.
- * Si para la misma fecha hay varias (BCV y/o manual), gana la última registrada.
- * Si es demasiado vieja, no hay tasa vigente y no se puede cotizar.
+ * Se aplica inmediatamente la última publicación del BCV, aunque su fecha valor sea futura.
+ * La tasa manual es solo respaldo cuando no hay una publicación oficial utilizable.
  */
 export async function currentRate(): Promise<Rate | null> {
 	const today = todayCaracas();
-	const r = await get<Rate>(`SELECT * FROM rates WHERE valid_date <= ? ORDER BY valid_date DESC, id DESC LIMIT 1`, [today]);
-	if (!r) return null;
-	if (daysBetween(r.valid_date, today) > config.maxRateAgeDays) return null;
-	return r;
+	const official = await get<Rate>(`SELECT * FROM rates WHERE source='bcv' ORDER BY id DESC LIMIT 1`);
+	const manual = await get<Rate>(`SELECT * FROM rates WHERE source='manual' ORDER BY id DESC LIMIT 1`);
+	return publishedRate(official, manual, today, config.maxRateAgeDays);
 }
 
 export function recentRates(limit = 10) {

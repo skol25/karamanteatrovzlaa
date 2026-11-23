@@ -60,7 +60,7 @@
 		<section class="card rate">
 			<div class="rhead">
 				<div>
-					<span class="eyebrow">Tasa oficial BCV</span>
+					<span class="eyebrow">Última tasa publicada por el BCV</span>
 					{#if data.current}
 						<p class="big">{rateFmt(data.current.rate)} <small>Bs/USD</small></p>
 						<p class="muted">
@@ -78,6 +78,7 @@
 				<form method="POST" action="?/bcv" use:enhance><button class="btn btn-ghost">Consultar BCV ahora</button></form>
 			</div>
 			<form method="POST" action="?/tasa" class="manual" use:enhance>
+				<p class="muted sm">Se aplica la última publicación del BCV inmediatamente, aunque su fecha valor sea futura. La tasa manual solo se usa si no hay una tasa oficial disponible y reciente.</p>
 				<span class="lbl">Respaldo manual</span>
 				<input class="input" name="rate" placeholder="Ej. 36,5120" inputmode="decimal" required />
 				<input class="input" name="valid_date" type="date" value={data.today} required />
