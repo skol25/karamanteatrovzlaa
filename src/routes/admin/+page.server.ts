@@ -80,9 +80,10 @@ export const actions = {
 		const { request, locals } = event;
 		guard(locals);
 		const fd = await request.formData();
-		const rate = Number(String(fd.get('rate') || '').replace(/\./g, '').replace(',', '.'));
+		const rawRate = String(fd.get('rate') || '').trim().replace(/\s/g, '');
+		const rate = Number(rawRate.includes(',') ? rawRate.replace(/\./g, '').replace(',', '.') : rawRate);
 		const date = String(fd.get('valid_date') || '');
-		if (!(rate > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail(400, { error: 'Tasa o fecha no válida.' });
+		if (!Number.isFinite(rate) || !(rate > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail(400, { error: 'Tasa o fecha no válida.' });
 		const prev = await currentRate();
 		await saveRate(rate, date, 'manual');
 		await audit(event, {

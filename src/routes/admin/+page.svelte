@@ -136,7 +136,7 @@
 									<button class="btn btn-lime">Confirmar y enviar entradas</button>
 								</form>
 								{#if rejecting === r.id}
-									<form method="POST" action="?/rechazar" class="rej" use:enhance={() => async ({ update }) => { rejecting = null; await update(); }}>
+									<form method="POST" action="?/rechazar" class="rej" use:enhance={() => async ({ update, result }) => { await update({ reset: false }); if (result.type === 'success') rejecting = null; }}>
 										<input type="hidden" name="id" value={r.id} />
 										<input class="input" name="note" placeholder="Motivo (se envía al comprador)" />
 										<button class="btn btn-ghost danger">Rechazar</button>
