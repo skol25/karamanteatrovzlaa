@@ -1,0 +1,31 @@
+name: Register external occupancy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: namecheap-production
+  cancel-in-progress: false
+
+jobs:
+  register:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_KEY"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap
+          chmod 600 ~/.ssh/namecheap
+          cp .github/namecheap_known_hosts ~/.ssh/known_hosts
+      - name: Register the requested seats with backup and duplicate protection
+        run: |
+          ssh -p 21098 -i ~/.ssh/namecheap -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=yes karapuwa@premium291.web-hosting.com 'source /home/karapuwa/nodevenv/karamantea/22/bin/activate && cd /home/karapuwa/karamantea && node --input-type=module' < scripts/occupancy-requests/20261124-10vip-6general.mjs
