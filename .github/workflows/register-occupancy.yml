@@ -28,4 +28,4 @@ jobs:
           cp .github/namecheap_known_hosts ~/.ssh/known_hosts
       - name: Register the requested seats with backup and duplicate protection
         run: |
-          ssh -p 21098 -i ~/.ssh/namecheap -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=yes karapuwa@premium291.web-hosting.com 'source /home/karapuwa/nodevenv/karamantea/22/bin/activate && cd /home/karapuwa/karamantea && node --input-type=module' < scripts/occupancy-requests/20261127-10vip-60general.mjs
+          ssh -p 21098 -i ~/.ssh/namecheap -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=yes karapuwa@premium291.web-hosting.com 'source /home/karapuwa/nodevenv/karamantea/22/bin/activate && cd /home/karapuwa/karamantea && node --input-type=module' < scripts/occupancy-requests/20261127-release20general.mjs
